@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as MovieIdRouteImport } from './routes/movie.$id'
 import { Route as ApiPublicSetupAdminRouteImport } from './routes/api/public/setup-admin'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
+import { Route as ApiPublicTelegramSetupRouteImport } from './routes/api/public/telegram/setup'
 import { Route as ApiPublicCronExpireRouteImport } from './routes/api/public/cron/expire'
 
 const SignupRoute = SignupRouteImport.update({
@@ -66,6 +67,11 @@ const ApiPublicTelegramWebhookRoute =
     path: '/api/public/telegram/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicTelegramSetupRoute = ApiPublicTelegramSetupRouteImport.update({
+  id: '/api/public/telegram/setup',
+  path: '/api/public/telegram/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCronExpireRoute = ApiPublicCronExpireRouteImport.update({
   id: '/api/public/cron/expire',
   path: '/api/public/cron/expire',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesById {
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRouteTypes {
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/movie/$id'
     | '/api/public/setup-admin'
     | '/api/public/cron/expire'
+    | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/movie/$id'
     | '/api/public/setup-admin'
     | '/api/public/cron/expire'
+    | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   id:
     | '__root__'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/movie/$id'
     | '/api/public/setup-admin'
     | '/api/public/cron/expire'
+    | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -158,6 +170,7 @@ export interface RootRouteChildren {
   MovieIdRoute: typeof MovieIdRoute
   ApiPublicSetupAdminRoute: typeof ApiPublicSetupAdminRoute
   ApiPublicCronExpireRoute: typeof ApiPublicCronExpireRoute
+  ApiPublicTelegramSetupRoute: typeof ApiPublicTelegramSetupRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
 
@@ -226,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/telegram/setup': {
+      id: '/api/public/telegram/setup'
+      path: '/api/public/telegram/setup'
+      fullPath: '/api/public/telegram/setup'
+      preLoaderRoute: typeof ApiPublicTelegramSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/expire': {
       id: '/api/public/cron/expire'
       path: '/api/public/cron/expire'
@@ -246,6 +266,7 @@ const rootRouteChildren: RootRouteChildren = {
   MovieIdRoute: MovieIdRoute,
   ApiPublicSetupAdminRoute: ApiPublicSetupAdminRoute,
   ApiPublicCronExpireRoute: ApiPublicCronExpireRoute,
+  ApiPublicTelegramSetupRoute: ApiPublicTelegramSetupRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
 export const routeTree = rootRouteImport

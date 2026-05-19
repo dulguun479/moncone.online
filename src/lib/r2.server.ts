@@ -28,3 +28,21 @@ export async function signR2PutUrl(key: string, contentType: string, expiresSeco
   );
   return signed.url;
 }
+
+export async function uploadToR2(key: string, data: ArrayBuffer | Blob, contentType: string) {
+  const client = getClient();
+  const url = r2Endpoint(key);
+  const signed = await client.sign(
+    new Request(url, {
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      body: data,
+    })
+  );
+  const res = await fetch(signed);
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`R2 upload failed: ${res.status} ${text}`);
+  }
+  return r2PublicUrl(key);
+}
