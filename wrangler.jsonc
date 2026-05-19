@@ -13,5 +13,12 @@
       "pattern": "www.moncone.online",
       "custom_domain": true
     }
-  ]
+  ],
+  "vars": {
+    "SUPABASE_URL": "https://pgevckipsajdxcgghkwm.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnZXZja2lwc2FqZHhjZ2doa3dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwODUwNTgsImV4cCI6MjA5NDY2MTA1OH0.jPClDHyeAxlyHz4xcBHZK_Lgn4Xq8Ny6rQWty3YnxYw",
+    "VITE_SUPABASE_PROJECT_ID": "pgevckipsajdxcgghkwm",
+    "VITE_SUPABASE_PUBLISHABLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnZXZja2lwc2FqZHhjZ2doa3dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwODUwNTgsImV4cCI6MjA5NDY2MTA1OH0.jPClDHyeAxlyHz4xcBHZK_Lgn4Xq8Ny6rQWty3YnxYw",
+    "VITE_SUPABASE_URL": "https://pgevckipsajdxcgghkwm.supabase.co"
+  }
 }
