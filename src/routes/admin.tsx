@@ -52,12 +52,26 @@ export const Route = createFileRoute("/admin")({ component: Admin });
 function Admin() {
   const { user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
-  const allowed = isAdmin && user?.email === ADMIN_EMAIL;
+  const allowed = isAdmin && user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   useEffect(() => {
+    console.log("[Admin Debug]", {
+      userEmail: user?.email,
+      isAdmin,
+      loading,
+      allowed,
+      ADMIN_EMAIL
+    });
     if (loading) return;
-    if (!user) { navigate({ to: "/login" }); return; }
-    if (!allowed) navigate({ to: "/" });
+    if (!user) {
+      console.log("[Admin Debug] Redirecting to /login - No user session");
+      navigate({ to: "/login" });
+      return;
+    }
+    if (!allowed) {
+      console.log("[Admin Debug] Redirecting to / - User is not admin or email mismatch");
+      navigate({ to: "/" });
+    }
   }, [user, allowed, loading, navigate]);
 
   if (!allowed) return null;
