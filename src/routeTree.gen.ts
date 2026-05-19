@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MovieIdRouteImport } from './routes/movie.$id'
+import { Route as ApiPublicSetupAdminRouteImport } from './routes/api/public/setup-admin'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicCronExpireRouteImport } from './routes/api/public/cron/expire'
 
@@ -54,6 +55,11 @@ const MovieIdRoute = MovieIdRouteImport.update({
   path: '/movie/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicSetupAdminRoute = ApiPublicSetupAdminRouteImport.update({
+  id: '/api/public/setup-admin',
+  path: '/api/public/setup-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTelegramWebhookRoute =
   ApiPublicTelegramWebhookRouteImport.update({
     id: '/api/public/telegram/webhook',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
+  '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
+  '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
+  '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/signup'
     | '/movie/$id'
+    | '/api/public/setup-admin'
     | '/api/public/cron/expire'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/signup'
     | '/movie/$id'
+    | '/api/public/setup-admin'
     | '/api/public/cron/expire'
     | '/api/public/telegram/webhook'
   id:
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/signup'
     | '/movie/$id'
+    | '/api/public/setup-admin'
     | '/api/public/cron/expire'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute
   SignupRoute: typeof SignupRoute
   MovieIdRoute: typeof MovieIdRoute
+  ApiPublicSetupAdminRoute: typeof ApiPublicSetupAdminRoute
   ApiPublicCronExpireRoute: typeof ApiPublicCronExpireRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
@@ -199,6 +212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MovieIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/setup-admin': {
+      id: '/api/public/setup-admin'
+      path: '/api/public/setup-admin'
+      fullPath: '/api/public/setup-admin'
+      preLoaderRoute: typeof ApiPublicSetupAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/telegram/webhook': {
       id: '/api/public/telegram/webhook'
       path: '/api/public/telegram/webhook'
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   SignupRoute: SignupRoute,
   MovieIdRoute: MovieIdRoute,
+  ApiPublicSetupAdminRoute: ApiPublicSetupAdminRoute,
   ApiPublicCronExpireRoute: ApiPublicCronExpireRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }

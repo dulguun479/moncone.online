@@ -4,6 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { tgSend } from "./telegram.server";
 import { sendNotificationEmail } from "./email.server";
+import { assertAdmin } from "./admin.server";
 
 // User: create a pending payment row using their own payment_code
 export const createPendingPayment = createServerFn({ method: "POST" })
@@ -56,9 +57,7 @@ export const adminConfirmPayment = createServerFn({ method: "POST" })
   .inputValidator((d: { paymentId: string }) => z.object({ paymentId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context;
-    const { data: roles } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", userId);
-    if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
+    await assertAdmin(userId);
 
     const { data: confirmed, error } = await supabaseAdmin
       .rpc("confirm_payment", { _payment_id: data.paymentId });
@@ -77,7 +76,7 @@ export const adminConfirmPayment = createServerFn({ method: "POST" })
       ? new Date(prof.subscription_expires_at).toLocaleDateString("mn-MN")
       : "";
 
-    const msg = `✅ Таны <b>moncone Premium</b> эрх идэвхжлээ!\nДуусах: <b>${expiry}</b>\nКино үзэх: cine-mongolia-pro.lovable.app`;
+    const msg = `✅ Таны <b>moncone Premium</b> эрх идэвхжлээ!\nДуусах: <b>${expiry}</b>\nКино үзэх: moncone.online`;
     if (prof?.telegram_chat_id) {
       await tgSend(prof.telegram_chat_id as number, msg);
     }
@@ -96,9 +95,7 @@ export const adminCancelSubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { userId: string }) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { data: roles } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", context.userId);
-    if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
+    await assertAdmin(context.userId);
     const { error } = await supabaseAdmin.rpc("cancel_subscription", { _user_id: data.userId });
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -108,9 +105,7 @@ export const adminCancelSubscription = createServerFn({ method: "POST" })
 export const adminListPayments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: roles } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", context.userId);
-    if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
+    await assertAdmin(context.userId);
 
     const { data: payments } = await supabaseAdmin
       .from("payments")
@@ -136,9 +131,7 @@ export const adminListPayments = createServerFn({ method: "GET" })
 export const adminStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: roles } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", context.userId);
-    if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
+    await assertAdmin(context.userId);
 
     const { count: users } = await supabaseAdmin.from("profiles").select("*", { count: "exact", head: true });
     const { count: premium } = await supabaseAdmin
@@ -166,9 +159,7 @@ export const adminUpdateSettings = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { data: roles } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", context.userId);
-    if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
+    await assertAdmin(context.userId);
     const { error } = await supabaseAdmin
       .from("app_settings")
       .update({ ...data, updated_at: new Date().toISOString() })

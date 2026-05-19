@@ -23,7 +23,7 @@ export const Route = createFileRoute("/api/public/cron/expire")({
         for (const row of expired) {
           if (row.telegram_chat_id) {
             await tgSend(row.telegram_chat_id,
-              "❌ Таны moncone Premium эрх дууслаа. Үргэлжлүүлэхийн тулд төлбөр шилжүүлнэ үү: cine-mongolia-pro.lovable.app/plans");
+              "❌ Таны moncone Premium эрх дууслаа. Үргэлжлүүлэхийн тулд төлбөр шилжүүлнэ үү: moncone.online/plans");
           }
         }
 

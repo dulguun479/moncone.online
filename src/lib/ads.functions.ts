@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { assertAdmin } from "./admin.server";
 
 const AdInput = z.object({
   title: z.string().min(1).max(120),
@@ -12,12 +13,6 @@ const AdInput = z.object({
   starts_at: z.string().nullable().optional(),
   ends_at: z.string().nullable().optional(),
 });
-
-async function assertAdmin(userId: string) {
-  const { data: roles } = await supabaseAdmin
-    .from("user_roles").select("role").eq("user_id", userId);
-  if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
-}
 
 export const adminListAds = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

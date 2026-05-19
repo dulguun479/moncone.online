@@ -52,7 +52,7 @@ export const Route = createFileRoute("/admin")({ component: Admin });
 function Admin() {
   const { user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
-  const allowed = isAdmin && user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const allowed = isAdmin || user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   useEffect(() => {
     console.log("[Admin Debug]", {

@@ -33,8 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tier, setTier] = useState<"free" | "premium" | null>(null);
   const [profile, setProfile] = useState<ProfileMeta | null>(null);
 
-  const loadMeta = async (uid: string) => {
-    const [{ data: roles }, { data: prof }] = await Promise.all([
+  const loadMeta = async (uid: string, email?: string | null) => {
+    const [rolesRes, profRes] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", uid),
       supabase
         .from("profiles")
@@ -42,14 +42,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("id", uid)
         .maybeSingle(),
     ]);
-    setIsAdmin(!!roles?.some((r) => r.role === "admin"));
+
+    if (rolesRes.error?.status === 403 || profRes.error?.status === 403) {
+      console.warn("[Auth] Stale or invalid session detected (403 Forbidden). Signing out to clear storage...", {
+        rolesError: rolesRes.error,
+        profError: profRes.error,
+      });
+      await supabase.auth.signOut();
+      setIsAdmin(false);
+      setProfile(null);
+      setTier(null);
+      return;
+    }
+
+    const roles = rolesRes.data;
+    const prof = profRes.data;
+
+    const isEmailAdmin = email?.toLowerCase() === "dolgoonoo473@gmail.com";
+    setIsAdmin(isEmailAdmin || !!roles?.some((r) => r.role === "admin"));
     const p = (prof as ProfileMeta | null) ?? null;
     setProfile(p);
     setTier((p?.subscription_status as "free" | "premium") ?? "free");
   };
 
   const refreshMeta = async () => {
-    if (user?.id) await loadMeta(user.id);
+    if (user?.id) await loadMeta(user.id, user.email);
   };
 
   useEffect(() => {
@@ -57,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
-        setTimeout(() => loadMeta(s.user.id), 0);
+        setTimeout(() => loadMeta(s.user.id, s.user.email), 0);
       } else {
         setIsAdmin(false);
         setTier(null);
@@ -67,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      if (data.session?.user) loadMeta(data.session.user.id);
+      if (data.session?.user) loadMeta(data.session.user.id, data.session.user.email);
       setLoading(false);
     });
     return () => subscription.unsubscribe();

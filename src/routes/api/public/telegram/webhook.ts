@@ -105,7 +105,7 @@ async function handleCommand(chatId: number, text: string) {
       ? new Date(profile.subscription_expires_at as string).toLocaleDateString("mn-MN") : "";
     if (profile?.telegram_chat_id) {
       await tgSend(profile.telegram_chat_id as number,
-        `✅ Таны <b>moncone Premium</b> эрх идэвхжлээ!\nДуусах: <b>${expiry}</b>\nКино үзэх: cine-mongolia-pro.lovable.app`);
+        `✅ Таны <b>moncone Premium</b> эрх идэвхжлээ!\nДуусах: <b>${expiry}</b>\nКино үзэх: moncone.online`);
     }
     await tgSend(chatId, `✅ ${code} баталгаажлаа. Дуусах: ${expiry}`);
     return;

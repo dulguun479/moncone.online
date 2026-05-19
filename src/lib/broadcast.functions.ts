@@ -3,12 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { tgSend } from "./telegram.server";
-
-async function assertAdmin(userId: string) {
-  const { data: roles } = await supabaseAdmin
-    .from("user_roles").select("role").eq("user_id", userId);
-  if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
-}
+import { assertAdmin } from "./admin.server";
 
 async function broadcastToAll(message: string, kind: string, senderId: string) {
   const { data: profs } = await supabaseAdmin
@@ -46,7 +41,7 @@ export const broadcastNewMovie = createServerFn({ method: "POST" })
       .from("movies").select("id, title, broadcast_sent").eq("id", data.movieId).single();
     if (!m) throw new Error("Movie not found");
     if (m.broadcast_sent) return { skipped: true, total: 0, sent: 0 };
-    const msg = `🎬 <b>Шинэ кино нэмэгдлээ:</b> ${m.title}\nОдоо үзэх: https://cine-mongolia-pro.lovable.app`;
+    const msg = `🎬 <b>Шинэ кино нэмэгдлээ:</b> ${m.title}\nОдоо үзэх: https://moncone.online`;
     const r = await broadcastToAll(msg, "new_movie", context.userId);
     await supabaseAdmin.from("movies").update({ broadcast_sent: true }).eq("id", m.id);
     return r;

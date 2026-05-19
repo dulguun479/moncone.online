@@ -3,12 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { signR2PutUrl, r2PublicUrl } from "./r2.server";
-
-async function assertAdmin(userId: string) {
-  const { data: roles } = await supabaseAdmin
-    .from("user_roles").select("role").eq("user_id", userId);
-  if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
-}
+import { assertAdmin } from "./admin.server";
 
 const folderMap: Record<string, string> = {
   video: "videos",
