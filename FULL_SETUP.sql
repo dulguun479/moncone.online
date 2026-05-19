@@ -5,8 +5,15 @@
 -- ================================================================
 
 -- MIGRATION 1: Үндсэн хүснэгтүүд
-CREATE TYPE IF NOT EXISTS public.app_role AS ENUM ('admin', 'user');
-CREATE TYPE IF NOT EXISTS public.subscription_tier AS ENUM ('free', 'premium');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'app_role') THEN
+    CREATE TYPE public.app_role AS ENUM ('admin', 'user');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscription_tier') THEN
+    CREATE TYPE public.subscription_tier AS ENUM ('free', 'premium');
+  END IF;
+END $$;
+
 
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -111,10 +118,16 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMPTZ;
 
 DO $$ BEGIN
-  BEGIN ALTER TABLE public.profiles ADD CONSTRAINT profiles_payment_code_key UNIQUE (payment_code); EXCEPTION WHEN duplicate_table THEN NULL; END;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profiles_payment_code_key') THEN
+    ALTER TABLE public.profiles ADD CONSTRAINT profiles_payment_code_key UNIQUE (payment_code);
+  END IF;
 END $$;
 
-CREATE TYPE IF NOT EXISTS public.payment_status AS ENUM ('pending', 'confirmed', 'expired', 'cancelled');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
+    CREATE TYPE public.payment_status AS ENUM ('pending', 'confirmed', 'expired', 'cancelled');
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
