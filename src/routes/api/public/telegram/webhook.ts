@@ -26,13 +26,49 @@ function admin(): any {
   return _admin;
 }
 
-async function isAdminEmail(chatId: number): Promise<boolean> {
-  const { data: prof } = await admin()
-    .from("profiles").select("id").eq("telegram_chat_id", chatId).maybeSingle();
-  if (!prof) return false;
-  const { data } = await admin().auth.admin.getUserById((prof as { id: string }).id);
-  return data?.user?.email === ADMIN_EMAIL;
+async function findUserByEmail(email: string): Promise<any | null> {
+  let page = 1;
+  while (true) {
+    const { data, error } = await admin().auth.admin.listUsers({ page, perPage: 100 });
+    if (error || !data?.users || data.users.length === 0) {
+      break;
+    }
+    const found = data.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    if (found) return found;
+    if (data.users.length < 100) break;
+    page++;
+  }
+  return null;
 }
+
+async function isAdminEmail(chatId: number): Promise<boolean> {
+  // 1. Check if directly configured in app_settings
+  try {
+    const { data: settings } = await admin()
+      .from("app_settings")
+      .select("admin_telegram_chat_id")
+      .eq("id", 1)
+      .maybeSingle();
+    if (settings && (settings as any).admin_telegram_chat_id === chatId) {
+      return true;
+    }
+  } catch (err) {
+    console.error("[telegram isAdminEmail settings check error]", err);
+  }
+
+  // 2. Check if linked to admin email profile
+  try {
+    const { data: prof } = await admin()
+      .from("profiles").select("id").eq("telegram_chat_id", chatId).maybeSingle();
+    if (!prof) return false;
+    const { data } = await admin().auth.admin.getUserById((prof as { id: string }).id);
+    return data?.user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  } catch (err) {
+    console.error("[telegram isAdminEmail profile check error]", err);
+    return false;
+  }
+}
+
 
 async function downloadTelegramFile(fileId: string): Promise<{ data: ArrayBuffer; mimeType: string; extension: string }> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -66,30 +102,148 @@ async function downloadTelegramFile(fileId: string): Promise<{ data: ArrayBuffer
   return { data: arrayBuffer, mimeType, extension: ext };
 }
 
-async function handleCommand(chatId: number, text: string, photo?: any) {
+async function handleCommand(chatId: number, text: string, photo?: any, contact?: any) {
+  // 1. Handle contact sharing (OTP requests)
+  if (contact) {
+    const rawPhone = contact.phone_number ?? "";
+    const cleanPhone = rawPhone.replace(/\D/g, "").replace(/^976/, "");
+    if (cleanPhone.length !== 8) {
+      await tgSend(chatId, "❌ Уучлаарай, зөвхөн Монгол улсын 8 оронтой утасны дугаарыг баталгаажуулах боломжтой.");
+      return;
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const email = `phone-${cleanPhone}@moncone.online`;
+
+    await tgSend(chatId, "⏳ Шалгаж байна, түр хүлээнэ үү...");
+
+    try {
+      const found = await findUserByEmail(email);
+      if (found) {
+        // Update existing user password
+        const { error } = await admin().auth.admin.updateUserById(found.id, { password: otp });
+        if (error) throw error;
+      } else {
+        // Create new user with email_confirm: true
+        const { error } = await admin().auth.admin.createUser({
+          email,
+          password: otp,
+          email_confirm: true,
+          user_metadata: { display_name: `Хэрэглэгч ${cleanPhone}` },
+        });
+        if (error) throw error;
+      }
+
+      await tgSend(
+        chatId,
+        `✅ <b>Утасны дугаар амжилттай баталгаажлаа!</b>\n\n` +
+          `Таны нэвтрэх нэг удаагийн код (Түр нууц үг):\n<code>${otp}</code>\n\n` +
+          `Энэ кодыг вэбсайт дээр оруулан шууд нэвтэрнэ үү. (Код 5 минутын дараа хүчингүй болно)`
+      );
+    } catch (err: any) {
+      console.error("[telegram contact handle error]", err);
+      await tgSend(chatId, `❌ Код үүсгэхэд алдаа гарлаа: ${err.message}`);
+    }
+    return;
+  }
+
   const cleanText = text.trim();
   const cmd = cleanText.split(/\s+/);
   const head = cmd[0]?.toLowerCase();
 
-  // /start command is available for everyone to link their account
-  if (head === "/start") {
+  // /start, /code, /otp commands
+  if (head === "/start" || head === "/code" || head === "/otp") {
     const arg = cmd[1];
-    if (!arg) {
+    if (!arg || arg.toLowerCase() === "otp") {
+      const keyboard = {
+        keyboard: [
+          [
+            {
+              text: "📱 Утасны дугаар илгээх",
+              request_contact: true,
+            },
+          ],
+        ],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      };
       await tgSend(
         chatId,
-        "Сайн байна уу! moncone мэдэгдэл авахын тулд:\n<code>/start таны@email.com</code>\nгэж бичнэ үү.",
+        "Сайн байна уу! 🎬 <b>moncone</b> ботод тавтай морил.\n\n" +
+          "Та вэбсайт руу нэвтрэх эсвэл бүртгүүлэх <b>Нэг удаагийн код (OTP)</b> авахыг хүсвэл доорх <b>'📱 Утасны дугаар илгээх'</b> товчийг дарж утасны дугаараа баталгаажуулна уу.\n\n" +
+          "<i>Санамж: Хэрэв та өөрийн бүртгэлийг Telegram-тай холбох гэж байгаа бол <code>/start таны@email.com</code> гэж бичнэ үү.</i>",
+        "HTML",
+        keyboard
       );
       return;
     }
-    // Find user by email
-    const { data: users } = await admin().auth.admin.listUsers({ page: 1, perPage: 200 });
-    const found = users?.users?.find((u: any) => u.email?.toLowerCase() === arg.toLowerCase());
-    if (!found) {
-      await tgSend(chatId, "❌ Энэ имэйл бүртгэлгүй байна. Эхлээд moncone-д бүртгүүлнэ үү.");
+
+    let foundUserId: string | null = null;
+    let targetEmail: string | null = null;
+
+    if (arg.includes("@")) {
+      // 1. Plain email lookup
+      const found = await findUserByEmail(arg);
+      if (found) {
+        foundUserId = found.id;
+        targetEmail = found.email;
+      }
+    } else if (arg.toUpperCase().startsWith("MN-")) {
+      // 2. Payment code lookup (from direct t.me link)
+      const { data: prof, error: profErr } = await admin()
+        .from("profiles")
+        .select("id")
+        .eq("payment_code", arg.toUpperCase())
+        .maybeSingle();
+      if (profErr) {
+        console.error("[telegram start payment code lookup error]", profErr);
+      }
+      if (prof) {
+        foundUserId = prof.id;
+        const { data: u } = await admin().auth.admin.getUserById(prof.id);
+        targetEmail = u?.user?.email ?? "хэрэглэгч";
+      }
+    } else {
+      // 3. Base64url email lookup fallback
+      try {
+        let base64 = arg.replace(/-/g, "+").replace(/_/g, "/");
+        while (base64.length % 4) base64 += "=";
+        const decoded = Buffer.from(base64, "base64").toString("utf8");
+        if (decoded.includes("@")) {
+          const found = await findUserByEmail(decoded);
+          if (found) {
+            foundUserId = found.id;
+            targetEmail = found.email;
+          }
+        }
+      } catch (e) {
+        // Not a base64 email, ignore
+      }
+    }
+
+    if (!foundUserId) {
+      await tgSend(
+        chatId,
+        "❌ Алдаа: Энэ бүртгэл олдсонгүй. Имэйл хаяг эсвэл Төлбөрийн кодоо зөв эсэхийг шалгаад дахин оролдоно үү.",
+      );
       return;
     }
-    await admin().from("profiles").update({ telegram_chat_id: chatId }).eq("id", found.id);
-    await tgSend(chatId, "✅ Танай Telegram холбогдлоо. Цаашид төлбөр, эрхийн мэдэгдэл энд ирнэ.");
+
+    const { error: updateErr } = await admin()
+      .from("profiles")
+      .update({ telegram_chat_id: chatId })
+      .eq("id", foundUserId);
+
+    if (updateErr) {
+      console.error("[telegram update error]", updateErr);
+      await tgSend(chatId, "❌ Алдаа: Төхөөрөмжийг холбоход дотоод алдаа гарлаа. Түр хүлээгээд дахин оролдоно үү.");
+      return;
+    }
+
+    await tgSend(
+      chatId,
+      `✅ <b>Таны Telegram амжилттай холбогдлоо!</b>\n\nБүртгэлтэй хаяг: <b>${targetEmail || "хэрэглэгч"}</b>\n\nЦаашид төлбөрийн мэдээлэл болон Premium эрхийн мэдэгдэл таны энэ чатад цаг тухайд нь шууд ирж байх болно. Баярлалаа!`,
+    );
     return;
   }
 
@@ -344,11 +498,12 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
         const chatId = msg?.chat?.id;
         const text = msg?.text ?? msg?.caption ?? "";
         const photo = msg?.photo;
+        const contact = msg?.contact;
 
         if (!chatId) return Response.json({ ok: true, ignored: true });
 
         try {
-          await handleCommand(chatId, text, photo);
+          await handleCommand(chatId, text, photo, contact);
         } catch (e) {
           console.error("[tg webhook]", e);
           await tgSend(chatId, "❌ Дотоод алдаа гарлаа.");

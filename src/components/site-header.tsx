@@ -3,12 +3,56 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Film, Globe, LogOut, Shield, User as UserIcon } from "lucide-react";
+import { Film, Globe, LogOut, Shield, User as UserIcon, Download, Send } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export function SiteHeader() {
   const { t, lang, setLang } = useI18n();
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [tgUser, setTgUser] = useState("moncone_bot");
+
+  useEffect(() => {
+    supabase.from("app_settings").select("telegram_bot_username").eq("id", 1).maybeSingle().then(({ data }) => {
+      if (data?.telegram_bot_username) {
+        setTgUser(data.telegram_bot_username);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent browser default prompt
+      e.preventDefault();
+      // Cache the prompt event
+      setDeferredPrompt(e);
+      // Reveal the premium install action button
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    // Turn off if already loaded inside native shell context (standalone display)
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setShowInstallBtn(false);
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`PWA installation outcome: ${outcome}`);
+    setDeferredPrompt(null);
+    setShowInstallBtn(false);
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -28,6 +72,40 @@ export function SiteHeader() {
           )}
         </nav>
         <div className="ml-auto flex items-center gap-2">
+          {showInstallBtn && (
+            <>
+              {/* Desktop Layout Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleInstallClick}
+                className="hidden md:flex gap-1.5 border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300 animate-pulse font-medium shadow-sm shadow-primary/10"
+              >
+                <Download className="h-4 w-4" />
+                <span>Апп Суулгах</span>
+              </Button>
+              {/* Mobile Layout Button */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleInstallClick}
+                className="flex md:hidden border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-300 animate-pulse"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="text-primary hover:text-primary-foreground hover:bg-primary/10 transition-colors"
+            title="Telegram"
+          >
+            <a href={`https://t.me/${tgUser}`}>
+              <Send className="h-4 w-4" />
+            </a>
+          </Button>
           <Button
             variant="ghost"
             size="sm"

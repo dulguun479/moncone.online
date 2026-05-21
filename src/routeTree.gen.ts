@@ -16,9 +16,12 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MovieIdRouteImport } from './routes/movie.$id'
+import { Route as ApiPublicUploadRouteImport } from './routes/api/public/upload'
 import { Route as ApiPublicSetupAdminRouteImport } from './routes/api/public/setup-admin'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicTelegramSetupRouteImport } from './routes/api/public/telegram/setup'
+import { Route as ApiPublicTelegramCheckEnvRouteImport } from './routes/api/public/telegram/check-env'
+import { Route as ApiPublicSmsSendRouteImport } from './routes/api/public/sms/send'
 import { Route as ApiPublicCronExpireRouteImport } from './routes/api/public/cron/expire'
 
 const SignupRoute = SignupRouteImport.update({
@@ -56,6 +59,11 @@ const MovieIdRoute = MovieIdRouteImport.update({
   path: '/movie/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicUploadRoute = ApiPublicUploadRouteImport.update({
+  id: '/api/public/upload',
+  path: '/api/public/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSetupAdminRoute = ApiPublicSetupAdminRouteImport.update({
   id: '/api/public/setup-admin',
   path: '/api/public/setup-admin',
@@ -70,6 +78,17 @@ const ApiPublicTelegramWebhookRoute =
 const ApiPublicTelegramSetupRoute = ApiPublicTelegramSetupRouteImport.update({
   id: '/api/public/telegram/setup',
   path: '/api/public/telegram/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTelegramCheckEnvRoute =
+  ApiPublicTelegramCheckEnvRouteImport.update({
+    id: '/api/public/telegram/check-env',
+    path: '/api/public/telegram/check-env',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicSmsSendRoute = ApiPublicSmsSendRouteImport.update({
+  id: '/api/public/sms/send',
+  path: '/api/public/sms/send',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicCronExpireRoute = ApiPublicCronExpireRouteImport.update({
@@ -87,7 +106,10 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
+  '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/sms/send': typeof ApiPublicSmsSendRoute
+  '/api/public/telegram/check-env': typeof ApiPublicTelegramCheckEnvRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -100,7 +122,10 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
+  '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/sms/send': typeof ApiPublicSmsSendRoute
+  '/api/public/telegram/check-env': typeof ApiPublicTelegramCheckEnvRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -114,7 +139,10 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
+  '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/sms/send': typeof ApiPublicSmsSendRoute
+  '/api/public/telegram/check-env': typeof ApiPublicTelegramCheckEnvRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -129,7 +157,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/movie/$id'
     | '/api/public/setup-admin'
+    | '/api/public/upload'
     | '/api/public/cron/expire'
+    | '/api/public/sms/send'
+    | '/api/public/telegram/check-env'
     | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -142,7 +173,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/movie/$id'
     | '/api/public/setup-admin'
+    | '/api/public/upload'
     | '/api/public/cron/expire'
+    | '/api/public/sms/send'
+    | '/api/public/telegram/check-env'
     | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   id:
@@ -155,7 +189,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/movie/$id'
     | '/api/public/setup-admin'
+    | '/api/public/upload'
     | '/api/public/cron/expire'
+    | '/api/public/sms/send'
+    | '/api/public/telegram/check-env'
     | '/api/public/telegram/setup'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
@@ -169,7 +206,10 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   MovieIdRoute: typeof MovieIdRoute
   ApiPublicSetupAdminRoute: typeof ApiPublicSetupAdminRoute
+  ApiPublicUploadRoute: typeof ApiPublicUploadRoute
   ApiPublicCronExpireRoute: typeof ApiPublicCronExpireRoute
+  ApiPublicSmsSendRoute: typeof ApiPublicSmsSendRoute
+  ApiPublicTelegramCheckEnvRoute: typeof ApiPublicTelegramCheckEnvRoute
   ApiPublicTelegramSetupRoute: typeof ApiPublicTelegramSetupRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
@@ -225,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MovieIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/upload': {
+      id: '/api/public/upload'
+      path: '/api/public/upload'
+      fullPath: '/api/public/upload'
+      preLoaderRoute: typeof ApiPublicUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/setup-admin': {
       id: '/api/public/setup-admin'
       path: '/api/public/setup-admin'
@@ -246,6 +293,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTelegramSetupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/telegram/check-env': {
+      id: '/api/public/telegram/check-env'
+      path: '/api/public/telegram/check-env'
+      fullPath: '/api/public/telegram/check-env'
+      preLoaderRoute: typeof ApiPublicTelegramCheckEnvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/sms/send': {
+      id: '/api/public/sms/send'
+      path: '/api/public/sms/send'
+      fullPath: '/api/public/sms/send'
+      preLoaderRoute: typeof ApiPublicSmsSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/expire': {
       id: '/api/public/cron/expire'
       path: '/api/public/cron/expire'
@@ -265,7 +326,10 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   MovieIdRoute: MovieIdRoute,
   ApiPublicSetupAdminRoute: ApiPublicSetupAdminRoute,
+  ApiPublicUploadRoute: ApiPublicUploadRoute,
   ApiPublicCronExpireRoute: ApiPublicCronExpireRoute,
+  ApiPublicSmsSendRoute: ApiPublicSmsSendRoute,
+  ApiPublicTelegramCheckEnvRoute: ApiPublicTelegramCheckEnvRoute,
   ApiPublicTelegramSetupRoute: ApiPublicTelegramSetupRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }

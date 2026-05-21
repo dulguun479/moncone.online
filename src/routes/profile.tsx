@@ -35,14 +35,28 @@ function Profile() {
     ? Math.max(0, Math.ceil((new Date(profile.subscription_expires_at).getTime() - Date.now()) / 86400000))
     : 0;
 
+  const isPhoneEmail = user.email?.startsWith("phone-") && user.email?.endsWith("@moncone.online");
+  const hasNativePhone = !!user.phone;
+  
+  let displayEmail = user.email ?? "";
+  let emailLabel = t("auth.email");
+  
+  if (isPhoneEmail) {
+    displayEmail = `+976 ${user.email!.replace("phone-", "").replace("@moncone.online", "")}`;
+    emailLabel = "Утасны дугаар";
+  } else if (hasNativePhone) {
+    displayEmail = user.phone!;
+    emailLabel = "Утасны дугаар";
+  }
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <h1 className="mb-8 text-3xl font-bold">{t("profile.title")}</h1>
 
       <div className="space-y-6 rounded-lg border border-border/60 bg-card p-6">
         <div className="space-y-1.5">
-          <Label>{t("auth.email")}</Label>
-          <Input value={user.email ?? ""} disabled />
+          <Label>{emailLabel}</Label>
+          <Input value={displayEmail} disabled />
         </div>
         <div className="space-y-1.5">
           <Label>{t("auth.name")}</Label>

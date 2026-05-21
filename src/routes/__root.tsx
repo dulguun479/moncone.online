@@ -48,9 +48,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" },
       { title: "moncone — Монгол кино урсгал" },
       { name: "description", content: "Монголын кино, түүхэн киноны урсгал үйлчилгээ. moncone — Mongolian movie streaming." },
+      { name: "theme-color", content: "#e50914" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "moncone" },
       { property: "og:title", content: "moncone — Монгол кино урсгал" },
       { property: "og:description", content: "Монголын кино, түүхэн киноны урсгал үйлчилгээ. moncone — Mongolian movie streaming." },
       { property: "og:type", content: "website" },
@@ -60,7 +64,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0d1bb885-94b0-4518-8a3e-b065791469b3/id-preview-93fc9f58--4ed09b53-4ef5-4ec4-8a51-8f0beaff344f.lovable.app-1779088424588.png" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/0d1bb885-94b0-4518-8a3e-b065791469b3/id-preview-93fc9f58--4ed09b53-4ef5-4ec4-8a51-8f0beaff344f.lovable.app-1779088424588.png" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" }
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -83,12 +92,37 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+
+  // Handle Supabase auth state shifts
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       router.invalidate();
     });
     return () => subscription.unsubscribe();
   }, [router]);
+
+  // Register Service Worker for PWA
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const registerSW = () => {
+        navigator.serviceWorker.register("/sw.js").then(
+          (registration) => {
+            console.log("Service Worker registered successfully with scope: ", registration.scope);
+          },
+          (err) => {
+            console.error("Service Worker registration failed: ", err);
+          }
+        );
+      };
+
+      if (document.readyState === "complete") {
+        registerSW();
+      } else {
+        window.addEventListener("load", registerSW);
+        return () => window.removeEventListener("load", registerSW);
+      }
+    }
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>

@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Crown, Copy, Send, CheckCircle2 } from "lucide-react";
+import { Crown, Copy, Send, CheckCircle2, Smartphone, Download } from "lucide-react";
 import { toast } from "sonner";
 import { createPendingPayment, listMyPayments } from "@/lib/payments.functions";
 
@@ -76,6 +76,23 @@ function Plans() {
         </div>
       )}
 
+      {/* Android APK Download Banner */}
+      <div className="mb-6 flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4">
+        <Smartphone className="mt-0.5 h-5 w-5 text-primary animate-bounce" />
+        <div className="flex-1">
+          <p className="font-semibold text-primary">Андройд Апп Татах</p>
+          <p className="text-sm text-muted-foreground">
+            moncone платформыг гар утсан дээрээ илүү хурдан, амар ашиглахын тулд албан ёсны Андройд апп-ыг (.apk) шууд татаж аваарай.
+          </p>
+        </div>
+        <Button asChild size="sm" className="bg-primary hover:bg-primary/95 text-primary-foreground gap-1.5 transition-all duration-300">
+          <a href="/app-release.apk" download>
+            <Download className="h-4 w-4" />
+            Татах
+          </a>
+        </Button>
+      </div>
+
       {/* Telegram connect banner */}
       <div className="mb-6 flex items-start gap-3 rounded-lg border border-border/60 bg-card p-4">
         <Send className="mt-0.5 h-5 w-5 text-primary" />
@@ -92,7 +109,7 @@ function Plans() {
           </span>
         ) : (
           <Button asChild size="sm" variant="secondary">
-            <a href={`https://t.me/${tgUser}`} target="_blank" rel="noreferrer">{t("plans.tg.cta")}</a>
+            <a href={`https://t.me/${tgUser}?start=${code}`}>{t("plans.tg.cta")}</a>
           </Button>
         )}
       </div>

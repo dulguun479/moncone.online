@@ -20,7 +20,6 @@ import {
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
-import { getUploadUrl } from "@/lib/upload.functions";
 import { adminListPayments, adminConfirmPayment, adminUpdateSettings } from "@/lib/payments.functions";
 import { adminListAds, adminUpsertAd, adminDeleteAd } from "@/lib/ads.functions";
 import { sendBroadcast, broadcastNewMovie } from "@/lib/broadcast.functions";
@@ -265,7 +264,6 @@ function MovieForm({ value, onChange }: { value: Partial<Movie>; onChange: (m: P
 }
 
 function UploadField({ kind, accept, value, onChange }: { kind: "video" | "poster" | "backdrop" | "ad"; accept: string; value: string; onChange: (url: string) => void }) {
-  const getUrl = useServerFn(getUploadUrl);
   const [progress, setProgress] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -273,19 +271,51 @@ function UploadField({ kind, accept, value, onChange }: { kind: "video" | "poste
     const file = e.target.files?.[0]; if (!file) return;
     setUploading(true); setProgress(0);
     try {
-      const { uploadUrl, publicUrl } = await getUrl({ data: { kind, filename: file.name, contentType: file.type || "application/octet-stream" } });
-      await new Promise<void>((resolve, reject) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Та нэвтрэх шаардлагатай");
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("kind", kind);
+
+      const publicUrl = await new Promise<string>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open("PUT", uploadUrl);
-        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-        xhr.upload.onprogress = (ev) => { if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100)); };
-        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`HTTP ${xhr.status}`)));
-        xhr.onerror = () => reject(new Error("Upload failed"));
-        xhr.send(file);
+        xhr.open("POST", "/api/public/upload");
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100));
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const res = JSON.parse(xhr.responseText);
+              if (res.publicUrl) resolve(res.publicUrl);
+              else reject(new Error(res.error || "Файл хуулахад алдаа гарлаа"));
+            } catch (e) {
+              reject(new Error("Серверээс ирсэн мэдээллийг уншиж чадсангүй"));
+            }
+          } else {
+            try {
+              const res = JSON.parse(xhr.responseText);
+              reject(new Error(res.error || `Серверийн алдаа: HTTP ${xhr.status}`));
+            } catch (e) {
+              reject(new Error(`Серверийн алдаа: HTTP ${xhr.status}`));
+            }
+          }
+        };
+        xhr.onerror = () => reject(new Error("Сүлжээний холболтын алдаа гарлаа"));
+        xhr.send(formData);
       });
-      onChange(publicUrl); toast.success("Хуулагдлаа");
-    } catch (err) { toast.error((err as Error).message); }
-    finally { setUploading(false); setProgress(null); }
+
+      onChange(publicUrl);
+      toast.success("Файлыг амжилттай хууллаа");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploading(false);
+      setProgress(null);
+    }
   };
 
   return (
