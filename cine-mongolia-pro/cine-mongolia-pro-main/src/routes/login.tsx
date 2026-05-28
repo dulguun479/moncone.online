@@ -19,7 +19,9 @@ function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { if (user) navigate({ to: "/" }); }, [user, navigate]);
+  useEffect(() => {
+    if (user) navigate({ to: "/" });
+  }, [user, navigate]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +29,10 @@ function Login() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) toast.error(error.message);
-    else { toast.success("Тавтай морил!"); navigate({ to: "/" }); }
+    else {
+      toast.success("Тавтай морил!");
+      navigate({ to: "/" });
+    }
   };
 
   return (
@@ -36,18 +41,37 @@ function Login() {
         <Film className="h-10 w-10 text-primary" />
         <h1 className="text-2xl font-bold">{t("auth.signin")}</h1>
       </div>
-      <form onSubmit={onSubmit} className="space-y-4 rounded-lg border border-border/60 bg-card p-6">
+      <form
+        onSubmit={onSubmit}
+        className="space-y-4 rounded-lg border border-border/60 bg-card p-6"
+      >
         <div className="space-y-1.5">
           <Label htmlFor="email">{t("auth.email")}</Label>
-          <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">{t("auth.password")}</Label>
-          <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          <Input
+            id="password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
         </div>
-        <Button type="submit" className="w-full" disabled={loading}>{t("auth.signin")}</Button>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {t("auth.signin")}
+        </Button>
         <p className="text-center text-sm text-muted-foreground">
-          <Link to="/signup" className="text-primary hover:underline">{t("auth.noAccount")}</Link>
+          <Link to="/signup" className="text-primary hover:underline">
+            {t("auth.noAccount")}
+          </Link>
         </p>
       </form>
     </div>

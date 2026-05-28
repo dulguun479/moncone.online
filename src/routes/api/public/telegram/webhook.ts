@@ -59,7 +59,10 @@ async function isAdminEmail(chatId: number): Promise<boolean> {
   // 2. Check if linked to admin email profile
   try {
     const { data: prof } = await admin()
-      .from("profiles").select("id").eq("telegram_chat_id", chatId).maybeSingle();
+      .from("profiles")
+      .select("id")
+      .eq("telegram_chat_id", chatId)
+      .maybeSingle();
     if (!prof) return false;
     const { data } = await admin().auth.admin.getUserById((prof as { id: string }).id);
     return data?.user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -69,8 +72,9 @@ async function isAdminEmail(chatId: number): Promise<boolean> {
   }
 }
 
-
-async function downloadTelegramFile(fileId: string): Promise<{ data: ArrayBuffer; mimeType: string; extension: string }> {
+async function downloadTelegramFile(
+  fileId: string,
+): Promise<{ data: ArrayBuffer; mimeType: string; extension: string }> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) throw new Error("TELEGRAM_BOT_TOKEN missing");
 
@@ -108,7 +112,10 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
     const rawPhone = contact.phone_number ?? "";
     const cleanPhone = rawPhone.replace(/\D/g, "").replace(/^976/, "");
     if (cleanPhone.length !== 8) {
-      await tgSend(chatId, "❌ Уучлаарай, зөвхөн Монгол улсын 8 оронтой утасны дугаарыг баталгаажуулах боломжтой.");
+      await tgSend(
+        chatId,
+        "❌ Уучлаарай, зөвхөн Монгол улсын 8 оронтой утасны дугаарыг баталгаажуулах боломжтой.",
+      );
       return;
     }
 
@@ -138,7 +145,7 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
         chatId,
         `✅ <b>Утасны дугаар амжилттай баталгаажлаа!</b>\n\n` +
           `Таны нэвтрэх нэг удаагийн код (Түр нууц үг):\n<code>${otp}</code>\n\n` +
-          `Энэ кодыг вэбсайт дээр оруулан шууд нэвтэрнэ үү. (Код 5 минутын дараа хүчингүй болно)`
+          `Энэ кодыг вэбсайт дээр оруулан шууд нэвтэрнэ үү. (Код 5 минутын дараа хүчингүй болно)`,
       );
     } catch (err: any) {
       console.error("[telegram contact handle error]", err);
@@ -173,13 +180,14 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
           "Та вэбсайт руу нэвтрэх эсвэл бүртгүүлэх <b>Нэг удаагийн код (OTP)</b> авахыг хүсвэл доорх <b>'📱 Утасны дугаар илгээх'</b> товчийг дарж утасны дугаараа баталгаажуулна уу.\n\n" +
           "<i>Санамж: Хэрэв та өөрийн бүртгэлийг Telegram-тай холбох гэж байгаа бол <code>/start таны@email.com</code> гэж бичнэ үү.</i>",
         "HTML",
-        keyboard
+        keyboard,
       );
       return;
     }
 
     let foundUserId: string | null = null;
     let targetEmail: string | null = null;
+    let targetEmailToRegister: string | null = null;
 
     if (arg.includes("@")) {
       // 1. Plain email lookup
@@ -187,6 +195,8 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
       if (found) {
         foundUserId = found.id;
         targetEmail = found.email;
+      } else {
+        targetEmailToRegister = arg;
       }
     } else if (arg.toUpperCase().startsWith("MN-")) {
       // 2. Payment code lookup (from direct t.me link)
@@ -214,10 +224,42 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
           if (found) {
             foundUserId = found.id;
             targetEmail = found.email;
+          } else {
+            targetEmailToRegister = decoded;
           }
         }
       } catch (e) {
         // Not a base64 email, ignore
+      }
+    }
+
+    // Auto-signup if targetEmailToRegister is set
+    if (targetEmailToRegister) {
+      try {
+        const tempPassword = Math.floor(100000 + Math.random() * 900000).toString();
+        const { data: newUser, error: createErr } = await admin().auth.admin.createUser({
+          email: targetEmailToRegister,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: {
+            display_name: targetEmailToRegister.split("@")[0],
+            temp_otp: tempPassword,
+            last_otp_at: new Date().toISOString(),
+          },
+        });
+        if (createErr) throw createErr;
+        if (newUser?.user) {
+          foundUserId = newUser.user.id;
+          targetEmail = newUser.user.email ?? targetEmailToRegister;
+          await tgSend(
+            chatId,
+            `✨ <b>Шинэ бүртгэл үүсгэлээ!</b>\n\nТаны <b>${targetEmail}</b> хаяг манай вэбсайтад бүртгэлгүй байсан тул шинээр бүртгэл үүсгэж, таны Telegram-тай амжилттай холболоо.\n\nТаны нэвтрэх түр нууц үг:\n<code>${tempPassword}</code>\n\nТа вэбсайт руу орон Утасны дугаараар нэвтрэх хэсэгт орж, өөрийн бүртгэлийг Telegram-аар баталгаажуулан энэ нууц кодоор шууд нэвтрэх боломжтой.`,
+          );
+        }
+      } catch (err: any) {
+        console.error("[telegram auto signup error]", err);
+        await tgSend(chatId, `❌ Шинэ бүртгэл үүсгэхэд алдаа гарлаа: ${err.message}`);
+        return;
       }
     }
 
@@ -236,7 +278,10 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
 
     if (updateErr) {
       console.error("[telegram update error]", updateErr);
-      await tgSend(chatId, "❌ Алдаа: Төхөөрөмжийг холбоход дотоод алдаа гарлаа. Түр хүлээгээд дахин оролдоно үү.");
+      await tgSend(
+        chatId,
+        "❌ Алдаа: Төхөөрөмжийг холбоход дотоод алдаа гарлаа. Түр хүлээгээд дахин оролдоно үү.",
+      );
       return;
     }
 
@@ -322,7 +367,10 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
       await tgSend(chatId, "⏳ Киноны постерийг татаж, R2 руу хуулж байна...");
       try {
         const { data, mimeType, extension } = await downloadTelegramFile(largestPhoto.file_id);
-        const safeTitle = title.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 30);
+        const safeTitle = title
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "_")
+          .slice(0, 30);
         const key = `posters/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeTitle}.${extension}`;
         posterUrl = await uploadToR2(key, data, mimeType);
       } catch (e: any) {
@@ -375,8 +423,11 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
   // 3. View Pending Payments (/pending)
   if (head === "/pending") {
     const { data } = await admin()
-      .from("payments").select("payment_code, amount, created_at, user_id")
-      .eq("status", "pending").order("created_at", { ascending: false }).limit(20);
+      .from("payments")
+      .select("payment_code, amount, created_at, user_id")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(20);
     if (!data?.length) {
       await tgSend(chatId, "✅ Хүлээгдэж буй төлбөр алга.");
       return;
@@ -394,7 +445,9 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
 
   // 4. View Statistics (/stats)
   if (head === "/stats") {
-    const { count: users } = await admin().from("profiles").select("*", { count: "exact", head: true });
+    const { count: users } = await admin()
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
     const { count: premium } = await admin()
       .from("profiles")
       .select("*", { count: "exact", head: true })
@@ -419,9 +472,13 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
   if (head === "/confirm" && cmd[1]) {
     const code = cmd[1].toUpperCase();
     const { data: pmt } = await admin()
-      .from("payments").select("id, user_id, status")
-      .eq("payment_code", code).eq("status", "pending")
-      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      .from("payments")
+      .select("id, user_id, status")
+      .eq("payment_code", code)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
     if (!pmt) {
       await tgSend(chatId, `❌ ${code} хүлээгдэж буй төлбөр олдсонгүй.`);
       return;
@@ -453,7 +510,10 @@ async function handleCommand(chatId: number, text: string, photo?: any, contact?
   if (head === "/cancel" && cmd[1]) {
     const code = cmd[1].toUpperCase();
     const { data: prof } = await admin()
-      .from("profiles").select("id, telegram_chat_id").eq("payment_code", code).maybeSingle();
+      .from("profiles")
+      .select("id, telegram_chat_id")
+      .eq("payment_code", code)
+      .maybeSingle();
     if (!prof) {
       await tgSend(chatId, `❌ ${code} код олдсонгүй.`);
       return;

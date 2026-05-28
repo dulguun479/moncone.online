@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/public/upload")({
             {
               global: { headers: { Authorization: `Bearer ${token}` } },
               auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-            }
+            },
           );
           const { data, error } = await supabase.auth.getUser(token);
           if (error || !data?.user) {

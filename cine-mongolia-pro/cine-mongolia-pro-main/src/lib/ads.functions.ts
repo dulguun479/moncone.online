@@ -15,7 +15,9 @@ const AdInput = z.object({
 
 async function assertAdmin(userId: string) {
   const { data: roles } = await supabaseAdmin
-    .from("user_roles").select("role").eq("user_id", userId);
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
   if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
 }
 
@@ -24,7 +26,9 @@ export const adminListAds = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
     const { data } = await supabaseAdmin
-      .from("ads").select("*").order("created_at", { ascending: false });
+      .from("ads")
+      .select("*")
+      .order("created_at", { ascending: false });
     return { ads: data ?? [] };
   });
 
@@ -36,7 +40,8 @@ export const adminUpsertAd = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     if (data.id) {
-      const { error } = await supabaseAdmin.from("ads")
+      const { error } = await supabaseAdmin
+        .from("ads")
         .update({ ...data.data, updated_at: new Date().toISOString() })
         .eq("id", data.id);
       if (error) throw new Error(error.message);

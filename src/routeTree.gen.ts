@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -22,6 +23,7 @@ import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/publi
 import { Route as ApiPublicTelegramSetupRouteImport } from './routes/api/public/telegram/setup'
 import { Route as ApiPublicTelegramCheckEnvRouteImport } from './routes/api/public/telegram/check-env'
 import { Route as ApiPublicSmsSendRouteImport } from './routes/api/public/sms/send'
+import { Route as ApiPublicPaymentsStripeRouteImport } from './routes/api/public/payments/stripe'
 import { Route as ApiPublicCronExpireRouteImport } from './routes/api/public/cron/expire'
 
 const SignupRoute = SignupRouteImport.update({
@@ -32,6 +34,11 @@ const SignupRoute = SignupRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlansRoute = PlansRouteImport.update({
@@ -91,6 +98,11 @@ const ApiPublicSmsSendRoute = ApiPublicSmsSendRouteImport.update({
   path: '/api/public/sms/send',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaymentsStripeRoute = ApiPublicPaymentsStripeRouteImport.update({
+  id: '/api/public/payments/stripe',
+  path: '/api/public/payments/stripe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCronExpireRoute = ApiPublicCronExpireRouteImport.update({
   id: '/api/public/cron/expire',
   path: '/api/public/cron/expire',
@@ -102,12 +114,14 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/plans': typeof PlansRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
   '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/payments/stripe': typeof ApiPublicPaymentsStripeRoute
   '/api/public/sms/send': typeof ApiPublicSmsSendRoute
   '/api/public/telegram/check-env': typeof ApiPublicTelegramCheckEnvRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
@@ -118,12 +132,14 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/plans': typeof PlansRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
   '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/payments/stripe': typeof ApiPublicPaymentsStripeRoute
   '/api/public/sms/send': typeof ApiPublicSmsSendRoute
   '/api/public/telegram/check-env': typeof ApiPublicTelegramCheckEnvRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
@@ -135,12 +151,14 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/plans': typeof PlansRoute
+  '/privacy': typeof PrivacyRoute
   '/profile': typeof ProfileRoute
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
   '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/payments/stripe': typeof ApiPublicPaymentsStripeRoute
   '/api/public/sms/send': typeof ApiPublicSmsSendRoute
   '/api/public/telegram/check-env': typeof ApiPublicTelegramCheckEnvRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
@@ -153,12 +171,14 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/plans'
+    | '/privacy'
     | '/profile'
     | '/signup'
     | '/movie/$id'
     | '/api/public/setup-admin'
     | '/api/public/upload'
     | '/api/public/cron/expire'
+    | '/api/public/payments/stripe'
     | '/api/public/sms/send'
     | '/api/public/telegram/check-env'
     | '/api/public/telegram/setup'
@@ -169,12 +189,14 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/plans'
+    | '/privacy'
     | '/profile'
     | '/signup'
     | '/movie/$id'
     | '/api/public/setup-admin'
     | '/api/public/upload'
     | '/api/public/cron/expire'
+    | '/api/public/payments/stripe'
     | '/api/public/sms/send'
     | '/api/public/telegram/check-env'
     | '/api/public/telegram/setup'
@@ -185,12 +207,14 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/plans'
+    | '/privacy'
     | '/profile'
     | '/signup'
     | '/movie/$id'
     | '/api/public/setup-admin'
     | '/api/public/upload'
     | '/api/public/cron/expire'
+    | '/api/public/payments/stripe'
     | '/api/public/sms/send'
     | '/api/public/telegram/check-env'
     | '/api/public/telegram/setup'
@@ -202,12 +226,14 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   LoginRoute: typeof LoginRoute
   PlansRoute: typeof PlansRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProfileRoute: typeof ProfileRoute
   SignupRoute: typeof SignupRoute
   MovieIdRoute: typeof MovieIdRoute
   ApiPublicSetupAdminRoute: typeof ApiPublicSetupAdminRoute
   ApiPublicUploadRoute: typeof ApiPublicUploadRoute
   ApiPublicCronExpireRoute: typeof ApiPublicCronExpireRoute
+  ApiPublicPaymentsStripeRoute: typeof ApiPublicPaymentsStripeRoute
   ApiPublicSmsSendRoute: typeof ApiPublicSmsSendRoute
   ApiPublicTelegramCheckEnvRoute: typeof ApiPublicTelegramCheckEnvRoute
   ApiPublicTelegramSetupRoute: typeof ApiPublicTelegramSetupRoute
@@ -228,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/plans': {
@@ -307,6 +340,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSmsSendRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/stripe': {
+      id: '/api/public/payments/stripe'
+      path: '/api/public/payments/stripe'
+      fullPath: '/api/public/payments/stripe'
+      preLoaderRoute: typeof ApiPublicPaymentsStripeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/expire': {
       id: '/api/public/cron/expire'
       path: '/api/public/cron/expire'
@@ -322,12 +362,14 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   LoginRoute: LoginRoute,
   PlansRoute: PlansRoute,
+  PrivacyRoute: PrivacyRoute,
   ProfileRoute: ProfileRoute,
   SignupRoute: SignupRoute,
   MovieIdRoute: MovieIdRoute,
   ApiPublicSetupAdminRoute: ApiPublicSetupAdminRoute,
   ApiPublicUploadRoute: ApiPublicUploadRoute,
   ApiPublicCronExpireRoute: ApiPublicCronExpireRoute,
+  ApiPublicPaymentsStripeRoute: ApiPublicPaymentsStripeRoute,
   ApiPublicSmsSendRoute: ApiPublicSmsSendRoute,
   ApiPublicTelegramCheckEnvRoute: ApiPublicTelegramCheckEnvRoute,
   ApiPublicTelegramSetupRoute: ApiPublicTelegramSetupRoute,
@@ -336,3 +378,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

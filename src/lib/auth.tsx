@@ -21,7 +21,12 @@ type AuthCtx = {
 };
 
 const Ctx = createContext<AuthCtx>({
-  user: null, session: null, loading: true, isAdmin: false, tier: null, profile: null,
+  user: null,
+  session: null,
+  loading: true,
+  isAdmin: false,
+  tier: null,
+  profile: null,
   refreshMeta: async () => {},
 });
 
@@ -38,16 +43,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from("user_roles").select("role").eq("user_id", uid),
       supabase
         .from("profiles")
-        .select("display_name, payment_code, subscription_status, subscription_expires_at, telegram_chat_id")
+        .select(
+          "display_name, payment_code, subscription_status, subscription_expires_at, telegram_chat_id",
+        )
         .eq("id", uid)
         .maybeSingle(),
     ]);
 
-    if (rolesRes.error?.status === 403 || profRes.error?.status === 403) {
-      console.warn("[Auth] Stale or invalid session detected (403 Forbidden). Signing out to clear storage...", {
-        rolesError: rolesRes.error,
-        profError: profRes.error,
-      });
+    if ((rolesRes.error as any)?.status === 403 || (profRes.error as any)?.status === 403) {
+      console.warn(
+        "[Auth] Stale or invalid session detected (403 Forbidden). Signing out to clear storage...",
+        {
+          rolesError: rolesRes.error,
+          profError: profRes.error,
+        },
+      );
       await supabase.auth.signOut();
       setIsAdmin(false);
       setProfile(null);
@@ -70,7 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {

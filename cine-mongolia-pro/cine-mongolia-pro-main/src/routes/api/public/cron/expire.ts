@@ -22,14 +22,18 @@ export const Route = createFileRoute("/api/public/cron/expire")({
         const expired = (data as any[]) ?? [];
         for (const row of expired) {
           if (row.telegram_chat_id) {
-            await tgSend(row.telegram_chat_id,
-              "❌ Таны moncone Premium эрх дууслаа. Үргэлжлүүлэхийн тулд төлбөр шилжүүлнэ үү: cine-mongolia-pro.lovable.app/plans");
+            await tgSend(
+              row.telegram_chat_id,
+              "❌ Таны moncone Premium эрх дууслаа. Үргэлжлүүлэхийн тулд төлбөр шилжүүлнэ үү: cine-mongolia-pro.lovable.app/plans",
+            );
           }
         }
 
         // 3-day warning to upcoming expirations
-        const in3 = new Date(); in3.setDate(in3.getDate() + 3);
-        const in4 = new Date(); in4.setDate(in4.getDate() + 4);
+        const in3 = new Date();
+        in3.setDate(in3.getDate() + 3);
+        const in4 = new Date();
+        in4.setDate(in4.getDate() + 4);
         const { data: soon } = await admin
           .from("profiles")
           .select("id, telegram_chat_id, subscription_expires_at")
@@ -38,8 +42,10 @@ export const Route = createFileRoute("/api/public/cron/expire")({
           .lt("subscription_expires_at", in4.toISOString());
         for (const p of soon ?? []) {
           if (p.telegram_chat_id) {
-            await tgSend(p.telegram_chat_id as number,
-              "⚠️ Таны moncone Premium эрх 3 хоногийн дараа дуусна. ₮10,000 шилжүүлж сунгана уу.");
+            await tgSend(
+              p.telegram_chat_id as number,
+              "⚠️ Таны moncone Premium эрх 3 хоногийн дараа дуусна. ₮10,000 шилжүүлж сунгана уу.",
+            );
           }
         }
 

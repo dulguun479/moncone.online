@@ -29,8 +29,10 @@ export async function assertAdmin(userId: string) {
 
       const email = u?.user?.email;
       if (email?.toLowerCase() === "dolgoonoo473@gmail.com") {
-        console.log(`[assertAdmin Self-Healing] Auto-inserting admin role for ${email} (${userId})`);
-        
+        console.log(
+          `[assertAdmin Self-Healing] Auto-inserting admin role for ${email} (${userId})`,
+        );
+
         const { error: insErr } = await supabaseAdmin
           .from("user_roles")
           .insert({ user_id: userId, role: "admin" });
@@ -38,7 +40,9 @@ export async function assertAdmin(userId: string) {
         if (insErr) {
           console.error("[assertAdmin Self-Healing] Error inserting admin role:", insErr);
         } else {
-          console.log(`[assertAdmin Self-Healing] Successfully healed admin role in database for ${email}!`);
+          console.log(
+            `[assertAdmin Self-Healing] Successfully healed admin role in database for ${email}!`,
+          );
           isAdmin = true;
         }
       }

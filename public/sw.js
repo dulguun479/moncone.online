@@ -1,31 +1,33 @@
 const CACHE_NAME = "moncone-cache-v1";
-const ASSETS_TO_CACHE = [
-  "/",
-  "/manifest.json",
-  "/icon.svg"
-];
+const ASSETS_TO_CACHE = ["/", "/manifest.json", "/icon.svg"];
 
 // Install event - Cache core static assets
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => {
+        return cache.addAll(ASSETS_TO_CACHE);
+      })
+      .then(() => self.skipWaiting()),
   );
 });
 
 // Activate event - Clean up old caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cache) => {
+            if (cache !== CACHE_NAME) {
+              return caches.delete(cache);
+            }
+          }),
+        );
+      })
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -66,10 +68,10 @@ self.addEventListener("fetch", (event) => {
           if (request.headers.get("accept")?.includes("text/html")) {
             return new Response(
               "<html><body style='background:#13101c;color:#fff;font-family:sans-serif;text-align:center;padding:50px;'><h2>Сүлжээний алдаа</h2><p>Интернэт холболтоо шалгаад дахин оролдоно уу.</p></body></html>",
-              { headers: { "Content-Type": "text/html; charset=utf-8" } }
+              { headers: { "Content-Type": "text/html; charset=utf-8" } },
             );
           }
         });
-      })
+      }),
   );
 });

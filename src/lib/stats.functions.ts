@@ -8,32 +8,55 @@ export const adminFullStats = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
 
-    const { count: users } = await supabaseAdmin.from("profiles").select("*", { count: "exact", head: true });
+    const { count: users } = await supabaseAdmin
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
     const { count: premium } = await supabaseAdmin
-      .from("profiles").select("*", { count: "exact", head: true }).eq("subscription_status", "premium");
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("subscription_status", "premium");
 
-    const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-    const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
 
     const [{ data: todayP }, { data: monthP }] = await Promise.all([
-      supabaseAdmin.from("payments").select("amount, confirmed_at")
-        .eq("status", "confirmed").gte("confirmed_at", startOfToday.toISOString()),
-      supabaseAdmin.from("payments").select("amount, confirmed_at")
-        .eq("status", "confirmed").gte("confirmed_at", startOfMonth.toISOString()),
+      supabaseAdmin
+        .from("payments")
+        .select("amount, confirmed_at")
+        .eq("status", "confirmed")
+        .gte("confirmed_at", startOfToday.toISOString()),
+      supabaseAdmin
+        .from("payments")
+        .select("amount, confirmed_at")
+        .eq("status", "confirmed")
+        .gte("confirmed_at", startOfMonth.toISOString()),
     ]);
 
-    const todayRevenue = (todayP ?? []).reduce((s: number, p: { amount: number }) => s + (p.amount ?? 0), 0);
-    const monthRevenue = (monthP ?? []).reduce((s: number, p: { amount: number }) => s + (p.amount ?? 0), 0);
+    const todayRevenue = (todayP ?? []).reduce(
+      (s: number, p: { amount: number }) => s + (p.amount ?? 0),
+      0,
+    );
+    const monthRevenue = (monthP ?? []).reduce(
+      (s: number, p: { amount: number }) => s + (p.amount ?? 0),
+      0,
+    );
 
     // Daily breakdown for the chart (last 30 days)
     const daily: Record<string, number> = {};
-    const since = new Date(); since.setDate(since.getDate() - 29); since.setHours(0,0,0,0);
-    const { data: monthAll } = await supabaseAdmin.from("payments")
+    const since = new Date();
+    since.setDate(since.getDate() - 29);
+    since.setHours(0, 0, 0, 0);
+    const { data: monthAll } = await supabaseAdmin
+      .from("payments")
       .select("amount, confirmed_at")
       .eq("status", "confirmed")
       .gte("confirmed_at", since.toISOString());
     for (let i = 0; i < 30; i++) {
-      const d = new Date(since); d.setDate(since.getDate() + i);
+      const d = new Date(since);
+      d.setDate(since.getDate() + i);
       daily[d.toISOString().slice(0, 10)] = 0;
     }
     for (const p of monthAll ?? []) {

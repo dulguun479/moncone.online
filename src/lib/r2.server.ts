@@ -37,7 +37,7 @@ export async function uploadToR2(key: string, data: ArrayBuffer | Blob, contentT
       method: "PUT",
       headers: { "Content-Type": contentType },
       body: data,
-    })
+    }),
   );
   const res = await fetch(signed);
   if (!res.ok) {

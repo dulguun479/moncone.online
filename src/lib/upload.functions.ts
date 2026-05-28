@@ -15,11 +15,13 @@ const folderMap: Record<string, string> = {
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      kind: z.enum(["video", "poster", "backdrop", "ad"]),
-      filename: z.string().min(1).max(200),
-      contentType: z.string().min(1).max(100),
-    }).parse(d),
+    z
+      .object({
+        kind: z.enum(["video", "poster", "backdrop", "ad"]),
+        filename: z.string().min(1).max(200),
+        contentType: z.string().min(1).max(100),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);

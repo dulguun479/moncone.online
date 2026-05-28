@@ -10,15 +10,23 @@ export const Route = createFileRoute("/api/public/telegram/check-env")({
           return {
             defined: !!val,
             length: val ? val.length : 0,
-            preview: val ? (val.length > 8 ? val.slice(0, 4) + "..." + val.slice(-4) : "***") : null,
+            preview: val
+              ? val.length > 8
+                ? val.slice(0, 4) + "..." + val.slice(-4)
+                : "***"
+              : null,
           };
         };
 
         let listUsersResult = null;
         try {
-          const client = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
-            auth: { autoRefreshToken: false, persistSession: false },
-          });
+          const client = createClient(
+            process.env.SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+              auth: { autoRefreshToken: false, persistSession: false },
+            },
+          );
           const { data, error } = await client.auth.admin.listUsers({ page: 1, perPage: 100 });
           if (error) {
             listUsersResult = { ok: false, error: error.message };

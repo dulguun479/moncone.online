@@ -5,7 +5,7 @@ export async function tgSend(
   chatId: number | string,
   text: string,
   parseMode: "HTML" | "Markdown" | undefined = "HTML",
-  replyMarkup?: any
+  replyMarkup?: any,
 ) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {

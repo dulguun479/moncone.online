@@ -22,7 +22,9 @@ function Login() {
   const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
   const [codeSent, setCodeSent] = useState(false);
   const [tgUser, setTgUser] = useState("moncone_bot");
-  const [phoneVerificationMethod, setPhoneVerificationMethod] = useState<"telegram" | "sms">("telegram");
+  const [phoneVerificationMethod, setPhoneVerificationMethod] = useState<"telegram" | "sms">(
+    "telegram",
+  );
 
   useEffect(() => {
     supabase
@@ -40,6 +42,42 @@ function Login() {
   useEffect(() => {
     if (user) navigate({ to: "/" });
   }, [user, navigate]);
+
+  useEffect(() => {
+    const fbAppId = import.meta.env.VITE_FACEBOOK_APP_ID || "";
+    const isFBConfigured = fbAppId && fbAppId !== "{your-app-id}";
+    if (!isFBConfigured) return;
+
+    const checkFBLogin = () => {
+      if (typeof window !== "undefined" && (window as any).FB) {
+        (window as any).FB.getLoginStatus((response: any) => {
+          if (response.status === "connected" && response.authResponse?.accessToken) {
+            supabase.auth.signInWithIdToken({
+              provider: "facebook",
+              token: response.authResponse.accessToken,
+            }).then(({ error }) => {
+              if (!error) {
+                toast.success("Facebook хаягаар автоматаар нэвтэрлээ!");
+                navigate({ to: "/" });
+              }
+            });
+          }
+        });
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      if ((window as any).FB) {
+        checkFBLogin();
+      } else {
+        const originalInit = (window as any).fbAsyncInit;
+        (window as any).fbAsyncInit = function () {
+          if (originalInit) originalInit();
+          checkFBLogin();
+        };
+      }
+    }
+  }, [navigate]);
 
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +116,7 @@ function Login() {
     setPhoneVerificationMethod("telegram");
     window.open(`https://t.me/${tgUser}?start=otp`, "_blank");
     toast.success(
-      "Telegram чат руу шилжлээ. 'Start' болон '📱 Утасны дугаар илгээх' товчийг дарж нэвтрэх кодоо авна уу!"
+      "Telegram чат руу шилжлээ. 'Start' болон '📱 Утасны дугаар илгээх' товчийг дарж нэвтрэх кодоо авна уу!",
     );
     setCodeSent(true);
   };
@@ -100,11 +138,19 @@ function Login() {
         body: JSON.stringify({ phone: cleanPhone }),
       });
       setLoading(false);
-      const data = await response.json() as any;
+      const data = (await response.json()) as any;
       if (!response.ok) {
         toast.error(data.error || "SMS илгээхэд алдаа гарлаа.");
       } else {
-        toast.success("Нэвтрэх кодыг таны утас руу SMS-ээр илгээлээ!");
+        if (data.warning) {
+          toast.warning(data.message, { duration: 10000 });
+          if (data.otp) {
+            toast.info(`Баталгаажуулах код (Тест): ${data.otp}`, { duration: 15000 });
+            setOtpCode(data.otp); // Pre-fill for extreme ease of testing while down!
+          }
+        } else {
+          toast.success(data.message || "Нэвтрэх кодыг таны утас руу SMS-ээр илгээлээ!");
+        }
         setCodeSent(true);
       }
     } catch (err: any) {
@@ -147,9 +193,13 @@ function Login() {
       setLoading(false);
       if (error) {
         if (phoneVerificationMethod === "sms") {
-          toast.error("Баталгаажуулах код буруу байна эсвэл хугацаа нь дууссан байна. Дахин оролдоно уу.");
+          toast.error(
+            "Баталгаажуулах код буруу байна эсвэл хугацаа нь дууссан байна. Дахин оролдоно уу.",
+          );
         } else {
-          toast.error("Код буруу байна эсвэл Telegram-аар баталгаажуулаагүй байна. Дахин оролдоно уу.");
+          toast.error(
+            "Код буруу байна эсвэл Telegram-аар баталгаажуулаагүй байна. Дахин оролдоно уу.",
+          );
         }
       } else {
         toast.success("Тавтай морил!");
@@ -166,6 +216,47 @@ function Login() {
       },
     });
     if (error) toast.error(error.message);
+  };
+
+  const handleFacebookLogin = async () => {
+    const fbAppId = import.meta.env.VITE_FACEBOOK_APP_ID || "";
+    const isFBConfigured = fbAppId && fbAppId !== "{your-app-id}";
+
+    if (typeof window !== "undefined" && (window as any).FB && isFBConfigured) {
+      (window as any).FB.login(
+        (response: any) => {
+          if (response.status === "connected" && response.authResponse?.accessToken) {
+            setLoading(true);
+            supabase.auth
+              .signInWithIdToken({
+                provider: "facebook",
+                token: response.authResponse.accessToken,
+              })
+              .then(({ error }) => {
+                setLoading(false);
+                if (error) {
+                  toast.error(error.message);
+                } else {
+                  toast.success("Facebook хаягаар амжилттай нэвтэрлээ!");
+                  navigate({ to: "/" });
+                }
+              });
+          } else {
+            toast.error("Facebook-ээр нэвтрэх үйл явц цуцлагдсан эсвэл алдаа гарлаа.");
+          }
+        },
+        { scope: "public_profile,email" }
+      );
+    } else {
+      // Fallback to standard Supabase OAuth redirect if Facebook SDK is blocked, not loaded, or not configured yet
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "facebook",
+        options: {
+          redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+      if (error) toast.error(error.message);
+    }
   };
 
   return (
@@ -259,7 +350,7 @@ function Login() {
                     disabled={loading}
                   >
                     <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.37.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/>
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.37.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z" />
                     </svg>
                     Telegram-аар код авах (ҮНЭГҮЙ)
                   </Button>
@@ -280,11 +371,13 @@ function Login() {
             <div className="rounded bg-secondary/20 p-3 text-xs text-muted-foreground border border-border/40">
               {loginMethod === "email" ? (
                 <p>
-                  Бид таны <b>{email}</b> имэйл рүү 6 оронтой нууц код илгээлээ. Имэйл хаягаа шалгана уу.
+                  Бид таны <b>{email}</b> имэйл рүү 6 оронтой нууц код илгээлээ. Имэйл хаягаа
+                  шалгана уу.
                 </p>
               ) : (
                 <p>
-                  Таны утас руу илгээсэн 6 оронтой нэг удаагийн баталгаажуулах кодыг (SMS) доор оруулна уу.
+                  Таны утас руу илгээсэн 6 оронтой нэг удаагийн баталгаажуулах кодыг (SMS) доор
+                  оруулна уу.
                 </p>
               )}
             </div>
@@ -346,6 +439,19 @@ function Login() {
                 />
               </svg>
               Google хаягаар шууд нэвтрэх
+            </Button>
+
+            {/* Facebook Sign-in Button */}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2 border-[#1877F2]/40 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 text-[#1877F2] hover:text-[#1877F2] transition-all duration-300"
+              onClick={handleFacebookLogin}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="#1877F2">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+              </svg>
+              Facebook хаягаар шууд нэвтрэх
             </Button>
           </>
         )}

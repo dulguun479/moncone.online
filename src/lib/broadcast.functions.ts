@@ -10,16 +10,23 @@ async function broadcastToAll(message: string, kind: string, senderId: string) {
     .from("profiles")
     .select("telegram_chat_id")
     .not("telegram_chat_id", "is", null);
-  const chats = (profs ?? []).map((p: { telegram_chat_id: number }) => p.telegram_chat_id).filter(Boolean);
+  const chats = (profs ?? [])
+    .map((p: { telegram_chat_id: number }) => p.telegram_chat_id)
+    .filter(Boolean);
   let sent = 0;
   for (const chat of chats) {
     try {
       const r = await tgSend(chat, message);
       if (r && (r as { ok?: boolean }).ok) sent++;
-    } catch (e) { console.error("[broadcast]", chat, e); }
+    } catch (e) {
+      console.error("[broadcast]", chat, e);
+    }
   }
   await supabaseAdmin.from("broadcasts").insert({
-    sent_by: senderId, message, recipients_count: sent, kind,
+    sent_by: senderId,
+    message,
+    recipients_count: sent,
+    kind,
   });
   return { total: chats.length, sent };
 }
@@ -38,7 +45,10 @@ export const broadcastNewMovie = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const { data: m } = await supabaseAdmin
-      .from("movies").select("id, title, broadcast_sent").eq("id", data.movieId).single();
+      .from("movies")
+      .select("id, title, broadcast_sent")
+      .eq("id", data.movieId)
+      .single();
     if (!m) throw new Error("Movie not found");
     if (m.broadcast_sent) return { skipped: true, total: 0, sent: 0 };
     const msg = `🎬 <b>Шинэ кино нэмэгдлээ:</b> ${m.title}\nОдоо үзэх: https://moncone.online`;

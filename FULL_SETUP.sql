@@ -110,7 +110,7 @@ END $$;
 CREATE INDEX IF NOT EXISTS movies_genre_idx ON public.movies (genre);
 CREATE INDEX IF NOT EXISTS movies_featured_idx ON public.movies (is_featured) WHERE is_featured;
 
-REVOKE EXECUTE ON FUNCTION public.has_role(UUID, app_role) FROM anon, authenticated, public;
+GRANT EXECUTE ON FUNCTION public.has_role(UUID, app_role) TO anon, authenticated;
 
 -- MIGRATION 2: Profiles өргөтгөх + Payments + App Settings
 ALTER TABLE public.profiles

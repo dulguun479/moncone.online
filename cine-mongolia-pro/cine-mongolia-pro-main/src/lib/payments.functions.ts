@@ -36,7 +36,10 @@ export const createPendingPayment = createServerFn({ method: "POST" })
     try {
       const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
       const { data: s } = await supabaseAdmin
-        .from("app_settings").select("admin_telegram_chat_id").eq("id", 1).maybeSingle();
+        .from("app_settings")
+        .select("admin_telegram_chat_id")
+        .eq("id", 1)
+        .maybeSingle();
       const adminChat = (s as { admin_telegram_chat_id?: number } | null)?.admin_telegram_chat_id;
       if (adminChat) {
         await tgSend(
@@ -57,11 +60,14 @@ export const adminConfirmPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { userId } = context;
     const { data: roles } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", userId);
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
     if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
 
-    const { data: confirmed, error } = await supabaseAdmin
-      .rpc("confirm_payment", { _payment_id: data.paymentId });
+    const { data: confirmed, error } = await supabaseAdmin.rpc("confirm_payment", {
+      _payment_id: data.paymentId,
+    });
     if (error) throw new Error(error.message);
     const payment = Array.isArray(confirmed) ? confirmed[0] : confirmed;
 
@@ -97,7 +103,9 @@ export const adminCancelSubscription = createServerFn({ method: "POST" })
   .inputValidator((d: { userId: string }) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: roles } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", context.userId);
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
     if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
     const { error } = await supabaseAdmin.rpc("cancel_subscription", { _user_id: data.userId });
     if (error) throw new Error(error.message);
@@ -109,7 +117,9 @@ export const adminListPayments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data: roles } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", context.userId);
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
     if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
 
     const { data: payments } = await supabaseAdmin
@@ -118,7 +128,9 @@ export const adminListPayments = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(500);
 
-    const userIds = Array.from(new Set((payments ?? []).map((p: { user_id: string }) => p.user_id)));
+    const userIds = Array.from(
+      new Set((payments ?? []).map((p: { user_id: string }) => p.user_id)),
+    );
     const emailMap: Record<string, string> = {};
     for (const id of userIds) {
       const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
@@ -137,18 +149,30 @@ export const adminStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data: roles } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", context.userId);
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
     if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
 
-    const { count: users } = await supabaseAdmin.from("profiles").select("*", { count: "exact", head: true });
+    const { count: users } = await supabaseAdmin
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
     const { count: premium } = await supabaseAdmin
-      .from("profiles").select("*", { count: "exact", head: true }).eq("subscription_status", "premium");
-    const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0);
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("subscription_status", "premium");
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
     const { data: monthPayments } = await supabaseAdmin
-      .from("payments").select("amount")
+      .from("payments")
+      .select("amount")
       .eq("status", "confirmed")
       .gte("confirmed_at", startOfMonth.toISOString());
-    const revenue = (monthPayments ?? []).reduce((s: number, p: { amount: number }) => s + (p.amount ?? 0), 0);
+    const revenue = (monthPayments ?? []).reduce(
+      (s: number, p: { amount: number }) => s + (p.amount ?? 0),
+      0,
+    );
     return { users: users ?? 0, premium: premium ?? 0, revenue };
   });
 
@@ -156,18 +180,22 @@ export const adminStats = createServerFn({ method: "GET" })
 export const adminUpdateSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      bank_name: z.string().min(1).max(100),
-      bank_account_number: z.string().min(1).max(50),
-      bank_account_name: z.string().min(1).max(100),
-      premium_price: z.number().int().min(1000).max(10_000_000),
-      telegram_bot_username: z.string().min(1).max(50),
-      admin_telegram_chat_id: z.number().int().nullable().optional(),
-    }).parse(d),
+    z
+      .object({
+        bank_name: z.string().min(1).max(100),
+        bank_account_number: z.string().min(1).max(50),
+        bank_account_name: z.string().min(1).max(100),
+        premium_price: z.number().int().min(1000).max(10_000_000),
+        telegram_bot_username: z.string().min(1).max(50),
+        admin_telegram_chat_id: z.number().int().nullable().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: roles } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", context.userId);
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
     if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
     const { error } = await supabaseAdmin
       .from("app_settings")

@@ -18,29 +18,40 @@ function Profile() {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { if (!loading && !user) navigate({ to: "/login" }); }, [user, loading, navigate]);
-  useEffect(() => { setName(profile?.display_name ?? ""); }, [profile]);
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/login" });
+  }, [user, loading, navigate]);
+  useEffect(() => {
+    setName(profile?.display_name ?? "");
+  }, [profile]);
 
   const save = async () => {
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({ display_name: name }).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: name })
+      .eq("id", user.id);
     setSaving(false);
-    if (error) toast.error(error.message); else toast.success("Хадгаллаа");
+    if (error) toast.error(error.message);
+    else toast.success("Хадгаллаа");
   };
 
   if (!user || !profile) return null;
   const isPremium = profile.subscription_status === "premium";
   const daysLeft = profile.subscription_expires_at
-    ? Math.max(0, Math.ceil((new Date(profile.subscription_expires_at).getTime() - Date.now()) / 86400000))
+    ? Math.max(
+        0,
+        Math.ceil((new Date(profile.subscription_expires_at).getTime() - Date.now()) / 86400000),
+      )
     : 0;
 
   const isPhoneEmail = user.email?.startsWith("phone-") && user.email?.endsWith("@moncone.online");
   const hasNativePhone = !!user.phone;
-  
+
   let displayEmail = user.email ?? "";
   let emailLabel = t("auth.email");
-  
+
   if (isPhoneEmail) {
     displayEmail = `+976 ${user.email!.replace("phone-", "").replace("@moncone.online", "")}`;
     emailLabel = "Утасны дугаар";
@@ -62,7 +73,9 @@ function Profile() {
           <Label>{t("auth.name")}</Label>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </div>
-        <Button onClick={save} disabled={saving}>{t("profile.save")}</Button>
+        <Button onClick={save} disabled={saving}>
+          {t("profile.save")}
+        </Button>
       </div>
 
       <div className="mt-6 rounded-lg border border-border/60 bg-card p-6">
@@ -71,10 +84,14 @@ function Profile() {
           <div>
             {isPremium ? (
               <>
-                <p className="inline-flex items-center gap-2 text-premium font-semibold"><Crown className="h-4 w-4" /> {t("status.premium")}</p>
+                <p className="inline-flex items-center gap-2 text-premium font-semibold">
+                  <Crown className="h-4 w-4" /> {t("status.premium")}
+                </p>
                 {profile.subscription_expires_at && (
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {t("status.expires")}: {new Date(profile.subscription_expires_at).toLocaleDateString("mn-MN")} · {daysLeft} {t("status.daysLeft")}
+                    {t("status.expires")}:{" "}
+                    {new Date(profile.subscription_expires_at).toLocaleDateString("mn-MN")} ·{" "}
+                    {daysLeft} {t("status.daysLeft")}
                   </p>
                 )}
               </>
@@ -91,11 +108,15 @@ function Profile() {
       <div className="mt-6 rounded-lg border border-border/60 bg-card p-6">
         <h2 className="mb-2 text-lg font-semibold">Telegram</h2>
         {profile.telegram_chat_id ? (
-          <p className="inline-flex items-center gap-2 text-primary"><CheckCircle2 className="h-4 w-4" /> {t("tg.connected")}</p>
+          <p className="inline-flex items-center gap-2 text-primary">
+            <CheckCircle2 className="h-4 w-4" /> {t("tg.connected")}
+          </p>
         ) : (
           <p className="inline-flex items-center gap-2 text-muted-foreground">
             <Send className="h-4 w-4" /> {t("tg.notConnected")} —{" "}
-            <Link to="/plans" className="underline">холбох заавар</Link>
+            <Link to="/plans" className="underline">
+              холбох заавар
+            </Link>
           </p>
         )}
       </div>

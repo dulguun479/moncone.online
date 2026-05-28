@@ -45,7 +45,9 @@ export function MovieCard({ movie }: { movie: Movie }) {
       )}
       <div className="poster-mask absolute inset-x-0 bottom-0 p-3">
         <h3 className="line-clamp-1 text-sm font-semibold text-foreground">{title}</h3>
-        <p className="text-[11px] text-muted-foreground">{movie.year} · {movie.genre}</p>
+        <p className="text-[11px] text-muted-foreground">
+          {movie.year} · {movie.genre}
+        </p>
       </div>
     </Link>
   );

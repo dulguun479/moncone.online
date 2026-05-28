@@ -13,10 +13,14 @@ export const Route = createFileRoute("/api/public/telegram/setup")({
         try {
           const token = process.env.TELEGRAM_BOT_TOKEN;
           if (!token) {
-            return Response.json({
-              ok: false,
-              error: "TELEGRAM_BOT_TOKEN environment variable is not configured on Cloudflare/Wrangler.",
-            }, { status: 500 });
+            return Response.json(
+              {
+                ok: false,
+                error:
+                  "TELEGRAM_BOT_TOKEN environment variable is not configured on Cloudflare/Wrangler.",
+              },
+              { status: 500 },
+            );
           }
 
           const urlObj = new URL(request.url);
@@ -33,10 +37,13 @@ export const Route = createFileRoute("/api/public/telegram/setup")({
             telegramResponse: result,
           });
         } catch (err: any) {
-          return Response.json({
-            ok: false,
-            error: err.message,
-          }, { status: 500 });
+          return Response.json(
+            {
+              ok: false,
+              error: err.message,
+            },
+            { status: 500 },
+          );
         }
       },
     },

@@ -37,7 +37,10 @@ export const createPendingPayment = createServerFn({ method: "POST" })
     try {
       const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
       const { data: s } = await supabaseAdmin
-        .from("app_settings").select("admin_telegram_chat_id").eq("id", 1).maybeSingle();
+        .from("app_settings")
+        .select("admin_telegram_chat_id")
+        .eq("id", 1)
+        .maybeSingle();
       const adminChat = (s as { admin_telegram_chat_id?: number } | null)?.admin_telegram_chat_id;
       if (adminChat) {
         await tgSend(
@@ -59,8 +62,9 @@ export const adminConfirmPayment = createServerFn({ method: "POST" })
     const { userId } = context;
     await assertAdmin(userId);
 
-    const { data: confirmed, error } = await supabaseAdmin
-      .rpc("confirm_payment", { _payment_id: data.paymentId });
+    const { data: confirmed, error } = await supabaseAdmin.rpc("confirm_payment", {
+      _payment_id: data.paymentId,
+    });
     if (error) throw new Error(error.message);
     const payment = Array.isArray(confirmed) ? confirmed[0] : confirmed;
 
@@ -113,7 +117,9 @@ export const adminListPayments = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(500);
 
-    const userIds = Array.from(new Set((payments ?? []).map((p: { user_id: string }) => p.user_id)));
+    const userIds = Array.from(
+      new Set((payments ?? []).map((p: { user_id: string }) => p.user_id)),
+    );
     const emailMap: Record<string, string> = {};
     for (const id of userIds) {
       const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
@@ -133,15 +139,25 @@ export const adminStats = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertAdmin(context.userId);
 
-    const { count: users } = await supabaseAdmin.from("profiles").select("*", { count: "exact", head: true });
+    const { count: users } = await supabaseAdmin
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
     const { count: premium } = await supabaseAdmin
-      .from("profiles").select("*", { count: "exact", head: true }).eq("subscription_status", "premium");
-    const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0);
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("subscription_status", "premium");
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
     const { data: monthPayments } = await supabaseAdmin
-      .from("payments").select("amount")
+      .from("payments")
+      .select("amount")
       .eq("status", "confirmed")
       .gte("confirmed_at", startOfMonth.toISOString());
-    const revenue = (monthPayments ?? []).reduce((s: number, p: { amount: number }) => s + (p.amount ?? 0), 0);
+    const revenue = (monthPayments ?? []).reduce(
+      (s: number, p: { amount: number }) => s + (p.amount ?? 0),
+      0,
+    );
     return { users: users ?? 0, premium: premium ?? 0, revenue };
   });
 
@@ -149,14 +165,16 @@ export const adminStats = createServerFn({ method: "GET" })
 export const adminUpdateSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      bank_name: z.string().min(1).max(100),
-      bank_account_number: z.string().min(1).max(50),
-      bank_account_name: z.string().min(1).max(100),
-      premium_price: z.number().int().min(1000).max(10_000_000),
-      telegram_bot_username: z.string().min(1).max(50),
-      admin_telegram_chat_id: z.number().int().nullable().optional(),
-    }).parse(d),
+    z
+      .object({
+        bank_name: z.string().min(1).max(100),
+        bank_account_number: z.string().min(1).max(50),
+        bank_account_name: z.string().min(1).max(100),
+        premium_price: z.number().int().min(1000).max(10_000_000),
+        telegram_bot_username: z.string().min(1).max(50),
+        admin_telegram_chat_id: z.number().int().nullable().optional(),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
@@ -177,4 +195,61 @@ export const listMyPayments = createServerFn({ method: "GET" })
       .select("*")
       .order("created_at", { ascending: false });
     return { payments: data ?? [] };
+  });
+
+// Admin: list all registered users with their profiles and emails
+export const adminListUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.userId);
+    const [
+      {
+        data: { users: authUsers },
+        error: authError,
+      },
+      { data: profiles, error: profError },
+    ] = await Promise.all([
+      supabaseAdmin.auth.admin.listUsers(),
+      supabaseAdmin.from("profiles").select("*"),
+    ]);
+
+    if (authError) throw new Error(authError.message);
+    if (profError) throw new Error(profError.message);
+
+    const userMap = new Map();
+    for (const u of authUsers ?? []) {
+      userMap.set(u.id, u.email || u.phone || "phone");
+    }
+
+    return {
+      users: (profiles ?? []).map((p: any) => ({
+        ...p,
+        email: userMap.get(p.id) ?? p.email ?? "Нэргүй",
+      })),
+    };
+  });
+
+// Admin: manually update a user's subscription status and expiration
+export const adminUpdateUserSubscription = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        status: z.enum(["free", "premium"]),
+        expiresAt: z.string().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.userId);
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({
+        subscription_status: data.status,
+        subscription_expires_at: data.expiresAt,
+      })
+      .eq("id", data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

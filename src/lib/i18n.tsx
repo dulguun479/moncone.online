@@ -149,7 +149,7 @@ const dict = {
   },
 } as const;
 
-type Key = keyof typeof dict["mn"];
+type Key = keyof (typeof dict)["mn"];
 
 const I18nCtx = createContext<{ lang: Lang; setLang: (l: Lang) => void; t: (k: Key) => string }>({
   lang: "mn",
@@ -173,10 +173,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 export const useI18n = () => useContext(I18nCtx);
 
-export function pickLocalized<T extends { title?: string | null; title_en?: string | null; description?: string | null; description_en?: string | null }>(
-  m: T,
-  lang: Lang
-) {
+export function pickLocalized<
+  T extends {
+    title?: string | null;
+    title_en?: string | null;
+    description?: string | null;
+    description_en?: string | null;
+  },
+>(m: T, lang: Lang) {
   return {
     title: lang === "en" ? m.title_en || m.title || "" : m.title || "",
     description: lang === "en" ? m.description_en || m.description || "" : m.description || "",

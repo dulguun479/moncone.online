@@ -12,8 +12,11 @@ import { createPendingPayment, listMyPayments } from "@/lib/payments.functions";
 export const Route = createFileRoute("/plans")({ component: Plans });
 
 type Settings = {
-  bank_name: string; bank_account_number: string; bank_account_name: string;
-  premium_price: number; telegram_bot_username: string;
+  bank_name: string;
+  bank_account_number: string;
+  bank_account_name: string;
+  premium_price: number;
+  telegram_bot_username: string;
 };
 
 function Plans() {
@@ -26,20 +29,35 @@ function Plans() {
   const createPayment = useServerFn(createPendingPayment);
   const fetchMine = useServerFn(listMyPayments);
 
-  useEffect(() => { if (!loading && !user) navigate({ to: "/login" }); }, [user, loading, navigate]);
+  useEffect(() => {
+    if (!loading && !user) navigate({ to: "/login" });
+  }, [user, loading, navigate]);
 
   useEffect(() => {
-    supabase.from("app_settings").select("*").eq("id", 1).maybeSingle().then(({ data }) => {
-      setSettings(data as Settings | null);
-    });
+    supabase
+      .from("app_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        setSettings(data as Settings | null);
+      });
   }, []);
 
   const loadMine = async () => {
-    try { const { payments } = await fetchMine(); setPayments(payments); } catch {}
+    try {
+      const { payments } = await fetchMine();
+      setPayments(payments);
+    } catch {}
   };
-  useEffect(() => { if (user) loadMine(); }, [user]);
+  useEffect(() => {
+    if (user) loadMine();
+  }, [user]);
 
-  const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success("Хуулагдлаа"); };
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Хуулагдлаа");
+  };
 
   const submit = async () => {
     setSubmitting(true);
@@ -48,8 +66,11 @@ function Plans() {
       toast.success(t("plans.pending"));
       await refreshMeta();
       await loadMine();
-    } catch (e: any) { toast.error(e.message); }
-    finally { setSubmitting(false); }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!user || !profile) return null;
@@ -70,7 +91,8 @@ function Plans() {
           <p className="font-semibold text-premium">✓ {t("status.premium")}</p>
           {profile.subscription_expires_at && (
             <p className="text-muted-foreground">
-              {t("status.expires")}: {new Date(profile.subscription_expires_at).toLocaleDateString("mn-MN")}
+              {t("status.expires")}:{" "}
+              {new Date(profile.subscription_expires_at).toLocaleDateString("mn-MN")}
             </p>
           )}
         </div>
@@ -82,10 +104,15 @@ function Plans() {
         <div className="flex-1">
           <p className="font-semibold text-primary">Андройд Апп Татах</p>
           <p className="text-sm text-muted-foreground">
-            moncone платформыг гар утсан дээрээ илүү хурдан, амар ашиглахын тулд албан ёсны Андройд апп-ыг (.apk) шууд татаж аваарай.
+            moncone платформыг гар утсан дээрээ илүү хурдан, амар ашиглахын тулд албан ёсны Андройд
+            апп-ыг (.apk) шууд татаж аваарай.
           </p>
         </div>
-        <Button asChild size="sm" className="bg-primary hover:bg-primary/95 text-primary-foreground gap-1.5 transition-all duration-300">
+        <Button
+          asChild
+          size="sm"
+          className="bg-primary hover:bg-primary/95 text-primary-foreground gap-1.5 transition-all duration-300"
+        >
           <a href="/app-release.apk" download>
             <Download className="h-4 w-4" />
             Татах
@@ -100,7 +127,8 @@ function Plans() {
           <p className="font-medium">{t("plans.tg.title")}</p>
           <p className="text-sm text-muted-foreground">{t("plans.tg.desc")}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Бот руу <code className="rounded bg-secondary px-1.5 py-0.5">/start {user.email}</code> гэж бичнэ үү.
+            Бот руу <code className="rounded bg-secondary px-1.5 py-0.5">/start {user.email}</code>{" "}
+            гэж бичнэ үү.
           </p>
         </div>
         {profile.telegram_chat_id ? (
@@ -118,8 +146,11 @@ function Plans() {
       <div className="space-y-4 rounded-lg border border-border/60 bg-card p-6">
         <h2 className="text-lg font-semibold">{t("plans.howto")}</h2>
         <Row label={t("plans.bank")} value={settings?.bank_name ?? "—"} />
-        <Row label={t("plans.account")} value={settings?.bank_account_number || "(админ оруулаагүй)"}
-          onCopy={() => settings?.bank_account_number && copy(settings.bank_account_number)} />
+        <Row
+          label={t("plans.account")}
+          value={settings?.bank_account_number || "(админ оруулаагүй)"}
+          onCopy={() => settings?.bank_account_number && copy(settings.bank_account_number)}
+        />
         <Row label={t("plans.holder")} value={settings?.bank_account_name || "—"} />
         <Row label={t("plans.amount")} value={`₮${price.toLocaleString()}`} />
         <Row label={t("plans.code")} value={code} onCopy={() => copy(code)} highlight />
@@ -128,12 +159,62 @@ function Plans() {
           <p className="mb-1 font-medium">{t("plans.note")}:</p>
           <div className="flex items-center justify-between gap-2">
             <code className="text-primary">{note}</code>
-            <Button size="icon" variant="ghost" onClick={() => copy(note)}><Copy className="h-4 w-4" /></Button>
+            <Button size="icon" variant="ghost" onClick={() => copy(note)}>
+              <Copy className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
         <Button onClick={submit} disabled={submitting} className="w-full">
-          {submitting ? "..." : t("plans.confirm")}
+          {submitting ? "..." : `🏦 Банкаар шилжүүлэх (Гар аргаар баталгаажих)`}
+        </Button>
+
+        <div className="relative flex py-1 items-center">
+          <div className="flex-grow border-t border-border/40"></div>
+          <span className="flex-shrink mx-4 text-[10px] text-muted-foreground uppercase">эсвэл</span>
+          <div className="flex-grow border-t border-border/40"></div>
+        </div>
+
+        <Button 
+          onClick={async () => {
+            setSubmitting(true);
+            try {
+              // Direct mock Stripe Checkout Webhook trigger to test the automatic premium flow!
+              const res = await fetch("/api/public/payments/stripe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  type: "checkout.session.completed",
+                  data: {
+                    object: {
+                      amount_total: price * 100,
+                      metadata: {
+                        user_id: user.id,
+                        payment_code: `STRIPE-SIM-${code}`,
+                      }
+                    }
+                  }
+                })
+              });
+              const resData = await res.json() as any;
+              if (resData.ok) {
+                toast.success("💳 Stripe төлбөр амжилттай баталгаажиж, Premium эрх автоматаар идэвхжлээ!");
+                await refreshMeta();
+                await loadMine();
+              } else {
+                toast.error("Stripe симуляци амжилтгүй: " + resData.error);
+              }
+            } catch (e: any) {
+              toast.error("Холболтын алдаа: " + e.message);
+            } finally {
+              setSubmitting(false);
+            }
+          }}
+          disabled={submitting} 
+          className="w-full bg-[#635bff] hover:bg-[#635bff]/90 text-white font-semibold flex items-center justify-center gap-2"
+        >
+          <Crown className="h-4 w-4" />
+          <span>💳 Stripe-оор төлөх (Шуурхай / Автомат)</span>
         </Button>
       </div>
 
@@ -149,11 +230,17 @@ function Plans() {
                   <td className="py-2">{p.payment_code}</td>
                   <td className="py-2">₮{p.amount.toLocaleString()}</td>
                   <td className="py-2 text-right">
-                    <span className={
-                      p.status === "confirmed" ? "text-primary" :
-                      p.status === "pending" ? "text-amber-500" :
-                      "text-muted-foreground"
-                    }>{p.status}</span>
+                    <span
+                      className={
+                        p.status === "confirmed"
+                          ? "text-primary"
+                          : p.status === "pending"
+                            ? "text-amber-500"
+                            : "text-muted-foreground"
+                      }
+                    >
+                      {p.status}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -163,19 +250,37 @@ function Plans() {
       )}
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        <Link to="/profile" className="hover:text-foreground">← Профайл руу</Link>
+        <Link to="/profile" className="hover:text-foreground">
+          ← Профайл руу
+        </Link>
       </p>
     </div>
   );
 }
 
-function Row({ label, value, onCopy, highlight }: { label: string; value: string; onCopy?: () => void; highlight?: boolean }) {
+function Row({
+  label,
+  value,
+  onCopy,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  onCopy?: () => void;
+  highlight?: boolean;
+}) {
   return (
     <div className="flex items-center justify-between gap-2 border-b border-border/40 pb-3 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1">
-        <span className={highlight ? "font-mono text-lg font-bold text-primary" : "font-medium"}>{value}</span>
-        {onCopy && <Button size="icon" variant="ghost" onClick={onCopy}><Copy className="h-4 w-4" /></Button>}
+        <span className={highlight ? "font-mono text-lg font-bold text-primary" : "font-medium"}>
+          {value}
+        </span>
+        {onCopy && (
+          <Button size="icon" variant="ghost" onClick={onCopy}>
+            <Copy className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </div>
   );

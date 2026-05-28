@@ -41,4 +41,10 @@ dist-ssr
 # Lock files and large assets
 *.zip
 *.tar.gz
+*.mp4
+*.exe
+*.apk
+*.keystore
+ffmpeg_extracted/
+facebook-android-sdk-*/
 

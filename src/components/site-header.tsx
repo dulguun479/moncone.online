@@ -16,11 +16,16 @@ export function SiteHeader() {
   const [tgUser, setTgUser] = useState("moncone_bot");
 
   useEffect(() => {
-    supabase.from("app_settings").select("telegram_bot_username").eq("id", 1).maybeSingle().then(({ data }) => {
-      if (data?.telegram_bot_username) {
-        setTgUser(data.telegram_bot_username);
-      }
-    });
+    supabase
+      .from("app_settings")
+      .select("telegram_bot_username")
+      .eq("id", 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.telegram_bot_username) {
+          setTgUser(data.telegram_bot_username);
+        }
+      });
   }, []);
 
   useEffect(() => {
@@ -62,11 +67,19 @@ export function SiteHeader() {
           <span className="text-xl font-bold tracking-tight text-primary">moncone</span>
         </Link>
         <nav className="hidden gap-5 text-sm text-muted-foreground md:flex">
-          <Link to="/" activeProps={{ className: "text-foreground" }} className="hover:text-foreground transition-colors">
+          <Link
+            to="/"
+            activeProps={{ className: "text-foreground" }}
+            className="hover:text-foreground transition-colors"
+          >
             {t("nav.home")}
           </Link>
           {isAdmin && (
-            <Link to="/admin" activeProps={{ className: "text-foreground" }} className="hover:text-foreground transition-colors">
+            <Link
+              to="/admin"
+              activeProps={{ className: "text-foreground" }}
+              className="hover:text-foreground transition-colors"
+            >
               {t("nav.admin")}
             </Link>
           )}
@@ -118,21 +131,36 @@ export function SiteHeader() {
           {user ? (
             <>
               <Button variant="ghost" size="icon" asChild>
-                <Link to="/profile"><UserIcon className="h-4 w-4" /></Link>
+                <Link to="/profile">
+                  <UserIcon className="h-4 w-4" />
+                </Link>
               </Button>
               {isAdmin && (
                 <Button variant="ghost" size="icon" asChild>
-                  <Link to="/admin"><Shield className="h-4 w-4" /></Link>
+                  <Link to="/admin">
+                    <Shield className="h-4 w-4" />
+                  </Link>
                 </Button>
               )}
-              <Button variant="ghost" size="icon" onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/" }); }}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  navigate({ to: "/" });
+                }}
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </>
           ) : (
             <>
-              <Button variant="ghost" size="sm" asChild><Link to="/login">{t("nav.login")}</Link></Button>
-              <Button size="sm" asChild><Link to="/signup">{t("nav.signup")}</Link></Button>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/login">{t("nav.login")}</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link to="/signup">{t("nav.signup")}</Link>
+              </Button>
             </>
           )}
         </div>

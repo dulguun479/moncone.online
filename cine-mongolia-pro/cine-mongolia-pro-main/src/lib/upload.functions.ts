@@ -6,7 +6,9 @@ import { signR2PutUrl, r2PublicUrl } from "./r2.server";
 
 async function assertAdmin(userId: string) {
   const { data: roles } = await supabaseAdmin
-    .from("user_roles").select("role").eq("user_id", userId);
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
   if (!roles?.some((r: { role: string }) => r.role === "admin")) throw new Error("Forbidden");
 }
 
@@ -20,11 +22,13 @@ const folderMap: Record<string, string> = {
 export const getUploadUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      kind: z.enum(["video", "poster", "backdrop", "ad"]),
-      filename: z.string().min(1).max(200),
-      contentType: z.string().min(1).max(100),
-    }).parse(d),
+    z
+      .object({
+        kind: z.enum(["video", "poster", "backdrop", "ad"]),
+        filename: z.string().min(1).max(200),
+        contentType: z.string().min(1).max(100),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);

@@ -1,0 +1,10 @@
+{
+  "rules": [
+    {
+      "allowedOrigins": ["https://moncone.online", "https://www.moncone.online", "*"],
+      "allowedMethods": ["GET", "HEAD"],
+      "allowedHeaders": ["*"],
+      "maxAgeSeconds": 86400
+    }
+  ]
+}
