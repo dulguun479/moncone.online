@@ -35,6 +35,8 @@ import {
   CreditCard,
   Loader2,
   CheckCircle2,
+  Play,
+  Copy,
 } from "lucide-react";
 import {
   LineChart,
@@ -56,7 +58,7 @@ import { adminListAds, adminUpsertAd, adminDeleteAd } from "@/lib/ads.functions"
 import { sendBroadcast, broadcastNewMovie } from "@/lib/broadcast.functions";
 import { adminFullStats } from "@/lib/stats.functions";
 
-const ADMIN_EMAIL = "dolgoonoo473@gmail.com";
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL || (typeof process !== "undefined" ? process.env.ADMIN_EMAIL : "") || "dolgoonoo473@gmail.com";
 
 type Movie = {
   id: string;
@@ -150,6 +152,9 @@ function Admin() {
           <TabsTrigger value="ads">
             <ImageIcon className="mr-2 h-4 w-4" /> Зар
           </TabsTrigger>
+          <TabsTrigger value="transcoder">
+            <Loader2 className="mr-2 h-4 w-4 text-emerald-400 animate-pulse" /> HLS Студи
+          </TabsTrigger>
           <TabsTrigger value="settings">Тохиргоо</TabsTrigger>
         </TabsList>
         <TabsContent value="stats">
@@ -169,6 +174,9 @@ function Admin() {
         </TabsContent>
         <TabsContent value="ads">
           <AdsTab />
+        </TabsContent>
+        <TabsContent value="transcoder">
+          <TranscoderTab />
         </TabsContent>
         <TabsContent value="settings">
           <SettingsTab />
@@ -1353,3 +1361,498 @@ function UsersTab() {
     </div>
   );
 }
+
+/* ---------------- HLS Transcoder Studio Tab ---------------- */
+function TranscoderTab() {
+  const [loading, setLoading] = useState(false);
+  const [mp4Files, setMp4Files] = useState<any[]>([]);
+  const [hlsOutputs, setHlsOutputs] = useState<any[]>([]);
+  const [job, setJob] = useState<any>({
+    status: "idle",
+    fileName: "",
+    outputName: "",
+    progressTime: "00:00:00.00",
+    speed: "0.0x",
+    totalDuration: "00:00:00.00",
+    percent: 0,
+    logs: [],
+    error: null,
+  });
+
+  const [selectedFile, setSelectedFile] = useState<string>("");
+  const [outputName, setOutputName] = useState<string>("");
+  const [encrypt, setEncrypt] = useState(false);
+  
+  // HLS Player Preview Dialog State
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const fetchStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
+
+      const res = await fetch("/api/public/transcode", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMp4Files(data.mp4Files || []);
+        setHlsOutputs(data.hlsOutputs || []);
+        if (data.job) {
+          setJob(data.job);
+          // Auto-select first file if none selected
+          if (!selectedFile && data.mp4Files && data.mp4Files.length > 0) {
+            setSelectedFile(data.mp4Files[0].name);
+            const base = data.mp4Files[0].name.replace(/\.[^/.]+$/, "");
+            setOutputName(base);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching transcode status:", err);
+    }
+  };
+
+  // Poll status when job is running
+  useEffect(() => {
+    fetchStatus();
+    let timer: any = null;
+    if (job.status === "running") {
+      timer = setInterval(fetchStatus, 1500);
+    } else {
+      timer = setInterval(fetchStatus, 10000); // lower frequency when idle
+    }
+    return () => clearInterval(timer);
+  }, [job.status]);
+
+  const handleStart = async () => {
+    if (!selectedFile || !outputName) {
+      toast.error("Сонгосон файл болон гаралтын нэр тодорхой байх ёстой.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Authentication failed");
+
+      const res = await fetch("/api/public/transcode", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ fileName: selectedFile, outputName, encrypt }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("HLS Хөрвүүлэлт арын горимд амжилттай эхэллээ!");
+        fetchStatus();
+      } else {
+        toast.error(data.error || "Алдаа гарлаа");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Сүлжээний алдаа");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!confirm("Хөрвүүлэлтийг зогсоох эсвэл статусыг цэвэрлэхдээ итгэлтэй байна уу?")) return;
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Authentication failed");
+
+      const res = await fetch("/api/public/transcode", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Статус цэвэрлэгдлээ / Хөрвүүлэлтийг зогсоолоо");
+        fetchStatus();
+      } else {
+        toast.error(data.error || "Алдаа гарлаа");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Сүлжээний алдаа");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyUrl = (name: string) => {
+    const relativeUrl = `/videos/${name}/master.m3u8`;
+    navigator.clipboard.writeText(relativeUrl);
+    toast.success(`HLS тоглуулагчийн URL хуулагдлаа: ${relativeUrl}`);
+  };
+
+  const handleFileChange = (fileName: string) => {
+    setSelectedFile(fileName);
+    const base = fileName.replace(/\.[^/.]+$/, "");
+    setOutputName(base);
+  };
+
+  // Video preview player inside modal
+  useEffect(() => {
+    const video = document.getElementById("hls-preview-player") as HTMLVideoElement;
+    if (!video || !previewUrl || !previewOpen) return;
+
+    const Hls = (window as any).Hls;
+    if (Hls && Hls.isSupported()) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        const token = session?.access_token;
+        const hls = new Hls({
+          xhrSetup: (xhr: any, url: string) => {
+            if (url.includes("/api/public/transcode-key") && token) {
+              xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+            }
+          }
+        });
+        hls.loadSource(previewUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video.play().catch(() => {});
+        });
+        (video as any)._hls = hls;
+      });
+
+      return () => {
+        const v = document.getElementById("hls-preview-player") as any;
+        if (v && v._hls) {
+          v._hls.destroy();
+          delete v._hls;
+        }
+      };
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        const token = session?.access_token;
+        if (token) {
+          const urlObj = new URL(previewUrl, window.location.origin);
+          urlObj.searchParams.set("token", token);
+          video.src = urlObj.toString();
+        } else {
+          video.src = previewUrl;
+        }
+        video.play().catch(() => {});
+      });
+    }
+  }, [previewUrl, previewOpen]);
+
+  // Load HLS CDN if not present when preview dialog opens
+  useEffect(() => {
+    if (previewOpen) {
+      if (!(window as any).Hls) {
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js";
+        document.head.appendChild(script);
+      }
+    }
+  }, [previewOpen]);
+
+  return (
+    <div className="space-y-6">
+      {/* Overview Card */}
+      <div className="rounded-lg border border-border/60 bg-card p-6">
+        <h3 className="text-xl font-bold text-white mb-2">🎬 HLS Adaptive Bitrate Transcoding Studio</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Энэхүү систем нь сервер дээрх бэлэн MP4 видео файлыг 100% үнэ төлбөргүйгээр, өндөр хамгаалалттай 
+          <b> HLS (HTTP Live Streaming)</b> формат руу хөрвүүлнэ. Хөрвүүлсэн видео нь <b>480p, 720p, 1080p</b> 
+          гэсэн 3 өөр чанарын сонголттойгоор сегментүүдэд хуваагдаж, хэрэглэгчдийн интернэтийн хурданд тааруулан 
+          автоматаар чанараа өөрчилдөг бөгөөд хөтчөөс шууд татаж авах боломжгүй болж хамгаалагдана.
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Step 1: Selection & Trigger */}
+        <div className="md:col-span-1 space-y-6">
+          <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
+            <h4 className="font-semibold text-white">1. Хөрвүүлэх файл сонгох</h4>
+            
+            {mp4Files.length === 0 ? (
+              <div className="rounded bg-secondary/50 p-4 text-center text-sm text-muted-foreground">
+                Үндсэн хавтсанд .mp4 видео одоогоор олдсонгүй. Уншуулахын тулд сервер дээр MP4 файл хуулна уу.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="mp4-select">MP4 Видео файл</Label>
+                  <select
+                    id="mp4-select"
+                    value={selectedFile}
+                    onChange={(e) => handleFileChange(e.target.value)}
+                    disabled={job.status === "running"}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {mp4Files.map((file) => (
+                      <option key={file.name} value={file.name}>
+                        {file.name} ({file.sizeMB} MB)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="output-name">Гаралтын нэр (Хавтасны нэр)</Label>
+                  <Input
+                    id="output-name"
+                    value={outputName}
+                    onChange={(e) => setOutputName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
+                    disabled={job.status === "running"}
+                    placeholder="Жишээ: unur_bul"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Зөвхөн англи үсэг, тоо, зураас ашиглана.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border border-border/40 bg-secondary/10 p-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="encrypt-toggle" className="text-sm font-medium text-white flex items-center gap-1.5">
+                      🔒 AES-128 DRM Хамгаалалт
+                    </Label>
+                    <p className="text-[10px] text-muted-foreground">
+                      Татаж авахаас хамгаалж, шифрлэх
+                    </p>
+                  </div>
+                  <Switch
+                    id="encrypt-toggle"
+                    checked={encrypt}
+                    onCheckedChange={setEncrypt}
+                    disabled={job.status === "running"}
+                  />
+                </div>
+
+                {job.status === "running" ? (
+                  <Button
+                    onClick={handleCancel}
+                    variant="destructive"
+                    className="w-full gap-2"
+                    disabled={loading}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>Хөрвүүлэлтийг зогсоох</span>
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleStart}
+                    className="w-full gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
+                    disabled={loading || mp4Files.length === 0}
+                  >
+                    <Loader2 className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    <span>HLS Хөрвүүлэлт Эхлүүлэх</span>
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Transcoded Streams List */}
+          <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
+            <h4 className="font-semibold text-white">Бэлэн болсон HLS видеонууд</h4>
+            {hlsOutputs.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Одоогоор хөрвүүлсэн видео байхгүй байна.</p>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {hlsOutputs.map((item: any) => {
+                  const name = item.name || item;
+                  const isEncrypted = !!item.isEncrypted;
+                  return (
+                    <div
+                      key={name}
+                      className="flex flex-col gap-2 rounded bg-secondary/30 border border-border/40 p-3 text-xs"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-mono font-medium text-white truncate max-w-[120px]" title={name}>
+                          {name}
+                        </span>
+                        <div className="flex gap-1 items-center">
+                          {isEncrypted ? (
+                            <span className="rounded bg-indigo-500/15 px-1.5 py-0.5 text-[9px] text-indigo-400 font-semibold border border-indigo-500/20">
+                              🔒 DRM-Lite
+                            </span>
+                          ) : (
+                            <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] text-amber-400 font-semibold border border-amber-500/20">
+                              🔓 Нээлттэй
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => copyUrl(name)}
+                          className="flex-1 py-1 text-[11px] h-7 gap-1"
+                        >
+                          <Copy className="h-3 w-3" /> URL хуулах
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 py-1 text-[11px] h-7 gap-1 bg-primary text-primary-foreground"
+                          onClick={() => {
+                            setPreviewUrl(`/videos/${name}/master.m3u8`);
+                            setPreviewOpen(true);
+                          }}
+                        >
+                          <Play className="h-3 w-3 fill-current" /> Тоглуулах
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Step 2: Real-time Console & Logs */}
+        <div className="md:col-span-2 space-y-6">
+          <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4 flex flex-col h-full min-h-[500px]">
+            <div className="flex justify-between items-center">
+              <h4 className="font-semibold text-white flex items-center gap-2">
+                <span>хөрвүүлэгч процессор</span>
+                {job.status === "running" && (
+                  <span className="flex h-2.5 w-2.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                )}
+              </h4>
+              <Badge
+                className={
+                  job.status === "running"
+                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                    : job.status === "completed"
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      : job.status === "failed"
+                        ? "bg-destructive/10 text-destructive border border-destructive/20"
+                        : "bg-secondary text-secondary-foreground"
+                }
+              >
+                {job.status === "running"
+                  ? "Хөрвүүлж байна"
+                  : job.status === "completed"
+                    ? "Амжилттай дууссан"
+                    : job.status === "failed"
+                      ? "Алдаа гарсан"
+                      : "Бэлэн"
+                }
+              </Badge>
+            </div>
+
+            {/* Progress Bar & Details */}
+            {job.status !== "idle" && (
+              <div className="rounded bg-secondary/40 p-4 border border-border/40 space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-muted-foreground">Процесс: <strong className="text-white">{job.fileName}</strong></span>
+                  <span className="font-mono text-emerald-400 font-semibold">{job.percent}%</span>
+                </div>
+                {/* Visual Progress Bar */}
+                <div className="w-full bg-secondary rounded-full h-2">
+                  <div
+                    className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${job.percent}%` }}
+                  ></div>
+                </div>
+                {/* Details grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono pt-1">
+                  <div>
+                    <span className="block text-[10px] text-muted-foreground">ЭХЛЭХ ХУГАЦАА</span>
+                    <span className="text-white">{job.progressTime}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-muted-foreground">НИЙТ ХУГАЦАА</span>
+                    <span className="text-white">{job.totalDuration}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-muted-foreground">ХӨРВҮҮЛЭХ ХУРД</span>
+                    <span className="text-emerald-400">{job.speed}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-muted-foreground">ГАРАЛТ</span>
+                    <span className="text-white">/videos/{job.outputName}/</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Console Log Terminal */}
+            <div className="flex-1 flex flex-col min-h-[300px]">
+              <span className="text-xs text-muted-foreground mb-1.5 block">Серверийн консоль лог:</span>
+              <div className="flex-1 rounded bg-black border border-border/80 p-4 font-mono text-[11px] leading-relaxed text-slate-300 overflow-y-auto max-h-[350px] space-y-1">
+                {job.logs.length === 0 ? (
+                  <span className="text-slate-500 italic">// Консолийн бүртгэл хоосон байна.</span>
+                ) : (
+                  job.logs.map((log: string, idx: number) => {
+                    let color = "text-slate-300";
+                    if (log.includes("Success!") || log.includes("completed successfully")) color = "text-emerald-400 font-semibold";
+                    else if (log.includes("Error:") || log.includes("failed") || log.includes("process failed")) color = "text-rose-400";
+                    else if (log.includes("⏳ Progress") || log.includes("Detected video total duration")) color = "text-cyan-400";
+                    
+                    return (
+                      <div key={idx} className={color}>
+                        {log}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-[10px] text-muted-foreground">Шинэчлэгдсэн: {new Date().toLocaleTimeString("mn-MN")}</span>
+                {job.status !== "idle" && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs h-7 text-muted-foreground hover:text-white"
+                    onClick={handleCancel}
+                  >
+                    Бүртгэлийг Цэвэрлэх
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Video Preview Modal */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-3xl bg-black border-border/60 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">🎥 HLS Adaptive Stream Шуурхай Үзэх</DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video w-full bg-black rounded-md overflow-hidden border border-border/30 mt-2">
+            {previewUrl && previewOpen && (
+              <video
+                id="hls-preview-player"
+                controls
+                autoPlay
+                className="h-full w-full"
+              />
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground space-y-1 mt-2 font-mono">
+            <p><strong>Stream Playlist URL:</strong> {previewUrl}</p>
+            <p className="text-[10px] text-emerald-400">✓ Multi-bitrate adaptive streaming is active. Select quality settings in the player controls if available.</p>
+          </div>
+          <DialogFooter className="pt-2">
+            <Button onClick={() => setPreviewOpen(false)} className="bg-primary text-white font-semibold">
+              Хаах
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+

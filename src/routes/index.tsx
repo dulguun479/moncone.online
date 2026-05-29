@@ -66,57 +66,79 @@ function Index() {
   return (
     <div className="pb-16">
       {hero && (
-        <section className="relative h-[70vh] min-h-[420px] w-full overflow-hidden">
+        <section className="relative h-[80vh] min-h-[500px] w-full overflow-hidden flex items-end">
+          {/* Zooming background cover */}
           {hero.backdrop_url || hero.poster_url ? (
             <img
               src={hero.backdrop_url || hero.poster_url!}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover transform scale-102 transition-transform duration-[10s] ease-out animate-pulse"
+              style={{ animationDuration: '8s' }}
             />
           ) : null}
-          <div className="hero-mask absolute inset-0" />
-          <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end gap-4 px-4 pb-16 sm:px-6">
-            <span className="text-xs uppercase tracking-widest text-primary">
-              {t("common.featured")}
-            </span>
-            <h1 className="max-w-2xl text-4xl font-bold sm:text-6xl">
-              {pickLocalized(hero, lang).title}
-            </h1>
-            <p className="max-w-xl text-sm text-muted-foreground sm:text-base">
-              {pickLocalized(hero, lang).description}
-            </p>
-            <div className="flex gap-3 pt-2">
-              <Button asChild size="lg" className="gap-2">
-                <Link to="/movie/$id" params={{ id: hero.id }}>
-                  <Play className="h-5 w-5 fill-current" /> {t("common.play")}
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="secondary" className="gap-2">
-                <Link to="/movie/$id" params={{ id: hero.id }}>
-                  <Info className="h-5 w-5" /> {t("common.related")}
-                </Link>
-              </Button>
+          
+          <div className="hero-mask absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+          
+          <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-20 sm:px-6 md:pb-28">
+            <div className="max-w-3xl space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-1000 ease-out">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/20 border border-primary/30 px-3 py-1 text-xs font-bold uppercase tracking-widest text-primary shadow-sm shadow-primary/10">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
+                <span>{t("common.featured")}</span>
+              </span>
+              
+              <h1 className="font-display text-5xl font-bold uppercase tracking-wide sm:text-8xl text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-zinc-300 drop-shadow-lg leading-[0.9] pb-2">
+                {pickLocalized(hero, lang).title}
+              </h1>
+              
+              <p className="max-w-2xl text-sm sm:text-lg text-zinc-300 leading-relaxed font-normal drop-shadow-sm">
+                {pickLocalized(hero, lang).description}
+              </p>
+              
+              <div className="flex flex-wrap gap-4 pt-4">
+                <Button 
+                  asChild 
+                  size="lg" 
+                  className="gap-2.5 bg-primary hover:bg-primary/90 text-white font-bold px-8 shadow-lg shadow-primary/20 hover:shadow-primary/45 hover:scale-[1.03] transition-all duration-300 rounded-xl"
+                >
+                  <Link to="/movie/$id" params={{ id: hero.id }}>
+                    <Play className="h-5 w-5 fill-current" /> 
+                    <span>{t("common.play")}</span>
+                  </Link>
+                </Button>
+                
+                <Button 
+                  asChild 
+                  size="lg" 
+                  variant="secondary" 
+                  className="gap-2.5 bg-secondary/50 hover:bg-secondary/80 border border-white/5 hover:scale-[1.03] transition-all duration-300 rounded-xl glass-card text-white font-semibold"
+                >
+                  <Link to="/movie/$id" params={{ id: hero.id }}>
+                    <Info className="h-5 w-5" /> 
+                    <span>{t("common.related")}</span>
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>
       )}
 
       <section className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="sticky top-16 z-20 -mx-4 flex flex-col gap-3 border-b border-border/40 bg-background/80 px-4 py-4 backdrop-blur sm:-mx-6 sm:flex-row sm:items-center sm:px-6">
+        <div className="sticky top-20 z-20 my-6 flex flex-col gap-3 rounded-2xl border border-white/5 bg-card/65 px-4 py-3.5 shadow-2xl shadow-black/60 backdrop-blur-xl sm:flex-row sm:items-center glass-card">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("common.search")}
-              className="pl-9"
+              className="pl-10 bg-black/20 border-white/5 focus-visible:ring-primary/45 rounded-xl placeholder:text-muted-foreground/60"
             />
           </div>
           <Select value={genre} onValueChange={setGenre}>
-            <SelectTrigger className="sm:w-56">
+            <SelectTrigger className="sm:w-56 bg-black/20 border-white/5 focus:ring-primary/45 rounded-xl">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background/95 backdrop-blur-md border-white/10 rounded-xl">
               <SelectItem value="all">{t("common.allGenres")}</SelectItem>
               {genres.map((g) => (
                 <SelectItem key={g} value={g}>

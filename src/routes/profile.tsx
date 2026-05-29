@@ -61,68 +61,75 @@ function Profile() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
-      <h1 className="mb-8 text-3xl font-bold">{t("profile.title")}</h1>
+    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <h1 className="mb-8 font-display text-4xl font-bold uppercase tracking-wider text-white">{t("profile.title")}</h1>
 
-      <div className="space-y-6 rounded-lg border border-border/60 bg-card p-6">
+      <div className="space-y-6 rounded-2xl border border-white/5 bg-card/45 p-8 backdrop-blur-2xl glass-card shadow-2xl">
         <div className="space-y-1.5">
-          <Label>{emailLabel}</Label>
-          <Input value={displayEmail} disabled />
+          <Label className="text-muted-foreground/80 font-medium">{emailLabel}</Label>
+          <Input value={displayEmail} disabled className="bg-black/20 border-white/5 rounded-xl text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
-          <Label>{t("auth.name")}</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
+          <Label className="text-muted-foreground/80 font-medium">{t("auth.name")}</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} className="bg-black/20 border-white/5 focus-visible:ring-primary/45 rounded-xl text-white" />
         </div>
-        <Button onClick={save} disabled={saving}>
+        <Button onClick={save} disabled={saving} className="bg-primary hover:bg-primary/90 text-white font-bold rounded-xl px-6 transition-all shadow shadow-primary/20 hover:scale-[1.03]">
           {t("profile.save")}
         </Button>
       </div>
 
-      <div className="mt-6 rounded-lg border border-border/60 bg-card p-6">
-        <h2 className="mb-3 text-lg font-semibold">{t("profile.plan")}</h2>
-        <div className="flex items-center justify-between">
+      <div className="mt-6 rounded-2xl border border-white/5 bg-card/45 p-8 backdrop-blur-2xl glass-card shadow-2xl">
+        <h2 className="mb-4 font-display text-xl font-bold uppercase tracking-wider text-white">{t("profile.plan")}</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             {isPremium ? (
               <>
-                <p className="inline-flex items-center gap-2 text-premium font-semibold">
-                  <Crown className="h-4 w-4" /> {t("status.premium")}
+                <p className="inline-flex items-center gap-2 text-premium font-bold tracking-wide uppercase text-sm">
+                  <Crown className="h-4 w-4 animate-pulse" /> {t("status.premium")}
                 </p>
                 {profile.subscription_expires_at && (
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-1.5 text-xs text-muted-foreground">
                     {t("status.expires")}:{" "}
-                    {new Date(profile.subscription_expires_at).toLocaleDateString("mn-MN")} ·{" "}
-                    {daysLeft} {t("status.daysLeft")}
+                    <span className="text-foreground font-semibold">
+                      {new Date(profile.subscription_expires_at).toLocaleDateString("mn-MN")}
+                    </span>{" "}
+                    ·{" "}
+                    <span className="text-primary font-bold">
+                      {daysLeft} {t("status.daysLeft")}
+                    </span>
                   </p>
                 )}
               </>
             ) : (
-              <p className="text-muted-foreground">Free · реклам үзнэ, зөвхөн үнэгүй кинонууд</p>
+              <p className="text-xs text-muted-foreground/90 leading-relaxed">
+                Free · реклам үзнэ, зөвхөн үнэгүй кинонууд
+              </p>
             )}
           </div>
-          <Button asChild className="bg-premium text-premium-foreground hover:bg-premium/90">
+          <Button asChild className="bg-premium hover:bg-premium/90 text-premium-foreground font-bold rounded-xl px-6 shadow-lg shadow-premium/15 hover:scale-[1.03] transition-all">
             <Link to="/plans">{isPremium ? t("status.renew") : t("profile.upgrade")}</Link>
           </Button>
         </div>
       </div>
 
-      <div className="mt-6 rounded-lg border border-border/60 bg-card p-6">
-        <h2 className="mb-2 text-lg font-semibold">Telegram</h2>
+      <div className="mt-6 rounded-2xl border border-white/5 bg-card/45 p-8 backdrop-blur-2xl glass-card shadow-2xl">
+        <h2 className="mb-3 font-display text-xl font-bold uppercase tracking-wider text-white">Telegram</h2>
         {profile.telegram_chat_id ? (
-          <p className="inline-flex items-center gap-2 text-primary">
+          <p className="inline-flex items-center gap-2 text-primary font-bold text-sm">
             <CheckCircle2 className="h-4 w-4" /> {t("tg.connected")}
           </p>
         ) : (
-          <p className="inline-flex items-center gap-2 text-muted-foreground">
-            <Send className="h-4 w-4" /> {t("tg.notConnected")} —{" "}
-            <Link to="/plans" className="underline">
+          <p className="inline-flex items-center gap-2 text-muted-foreground/80 text-xs leading-relaxed">
+            <Send className="h-4 w-4 text-primary" /> {t("tg.notConnected")} —{" "}
+            <Link to="/plans" className="underline font-bold text-foreground hover:text-primary transition-colors">
               холбох заавар
             </Link>
           </p>
         )}
       </div>
 
-      <p className="mt-4 text-xs text-muted-foreground">
-        Таны төлбөрийн код: <code className="text-primary">{profile.payment_code}</code>
+      <p className="mt-6 text-xs text-muted-foreground/80 text-center">
+        Таны төлбөрийн код: <code className="text-primary font-bold font-mono bg-primary/5 border border-primary/20 px-2 py-0.5 rounded ml-1">{profile.payment_code}</code>
       </p>
     </div>
   );

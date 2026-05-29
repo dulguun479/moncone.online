@@ -68,7 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const roles = rolesRes.data;
     const prof = profRes.data;
 
-    const isEmailAdmin = email?.toLowerCase() === "dolgoonoo473@gmail.com";
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || "dolgoonoo473@gmail.com";
+    const isEmailAdmin = email?.toLowerCase() === adminEmail.toLowerCase();
     setIsAdmin(isEmailAdmin || !!roles?.some((r) => r.role === "admin"));
     const p = (prof as ProfileMeta | null) ?? null;
     setProfile(p);

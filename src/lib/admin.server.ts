@@ -28,7 +28,8 @@ export async function assertAdmin(userId: string) {
       }
 
       const email = u?.user?.email;
-      if (email?.toLowerCase() === "dolgoonoo473@gmail.com") {
+      const adminEmail = process.env.ADMIN_EMAIL || import.meta.env.VITE_ADMIN_EMAIL || "dolgoonoo473@gmail.com";
+      if (email?.toLowerCase() === adminEmail.toLowerCase()) {
         console.log(
           `[assertAdmin Self-Healing] Auto-inserting admin role for ${email} (${userId})`,
         );

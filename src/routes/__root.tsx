@@ -12,6 +12,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import { SiteHeader } from "@/components/site-header";
 import { Toaster } from "@/components/ui/sonner";
+import { AiChatAssistant } from "@/components/ai-chat-assistant";
 import { supabase } from "@/integrations/supabase/client";
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
@@ -97,6 +98,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap",
+      },
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/manifest.json" },
       { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
@@ -113,6 +120,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
   const fbAppId = import.meta.env.VITE_FACEBOOK_APP_ID || (typeof process !== "undefined" ? process.env.FACEBOOK_APP_ID : "") || "{your-app-id}";
   const fbApiVersion = import.meta.env.VITE_FACEBOOK_API_VERSION || (typeof process !== "undefined" ? process.env.FACEBOOK_API_VERSION : "") || "v18.0";
   const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID || (typeof process !== "undefined" ? process.env.GA_MEASUREMENT_ID : "") || "";
+  const adsenseClientId = import.meta.env.VITE_ADSENSE_CLIENT_ID || "";
 
   return (
     <html lang="mn" className="dark">
@@ -122,6 +130,14 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <meta name="google-site-verification" content="T1fOaBHzLk2QQnfLeYEq7nEWfK7nFJqPRpLwNUp1UnA" />
         {/* Leadfeeder Web Visitors tracking */}
         <script dangerouslySetInnerHTML={{ __html: `(function(ss,ex){ window.ldfdr=window.ldfdr||function(){(ldfdr._q=ldfdr._q||[]).push([].slice.call(arguments));}; (function(d,s){ fs=d.getElementsByTagName(s)[0]; function ce(src){ var cs=d.createElement(s); cs.src=src; cs.async=1; fs.parentNode.insertBefore(cs,fs); }; ce('https://sc.lfeeder.com/lftracker_v1_'+ss+(ex?'_'+ex:'')+'.js'); })(document,'script'); })('lYNOR8x9yvN7WQJZ');` }} />
+        {/* Google AdSense Integration */}
+        {adsenseClientId && (
+          <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
+            crossOrigin="anonymous"
+          />
+        )}
         {/* Google Analytics 4 (gtag.js) */}
         {gaId && (
           <>
@@ -155,8 +171,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
            }(document, 'script', 'facebook-jssdk'));
         ` }} />
       </head>
-      <body className="dark min-h-screen bg-background text-foreground">
-        {children}
+      <body className="dark min-h-screen bg-background text-foreground relative overflow-x-hidden">
+        {/* Ambient deep space floating mesh blobs */}
+        <div className="bg-blob-red top-[-100px] left-[-200px]" />
+        <div className="bg-blob-purple top-[30vh] right-[-300px]" />
+        <div className="bg-blob-gold bottom-[10vh] left-[20vw]" />
+        
+        <div className="relative z-10 flex flex-col min-h-screen">
+          {children}
+        </div>
         <Scripts />
       </body>
     </html>
@@ -211,6 +234,7 @@ function RootComponent() {
             <p>© {new Date().getFullYear()} moncone</p>
           </footer>
           <Toaster theme="dark" position="top-center" />
+          <AiChatAssistant />
         </AuthProvider>
       </I18nProvider>
     </QueryClientProvider>

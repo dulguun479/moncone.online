@@ -162,7 +162,8 @@ export const Route = createFileRoute("/api/public/setup-admin")({
             );
           }
 
-          const targetEmail = "dolgoonoo473@gmail.com".toLowerCase();
+          const adminEmail = process.env.ADMIN_EMAIL || import.meta.env.VITE_ADMIN_EMAIL || "dolgoonoo473@gmail.com";
+          const targetEmail = adminEmail.toLowerCase();
           const matchedUser = users?.find((u) => u.email?.toLowerCase() === targetEmail);
 
           if (!matchedUser) {

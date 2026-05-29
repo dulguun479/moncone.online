@@ -166,6 +166,7 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
   premium_price INTEGER NOT NULL DEFAULT 10000,
   telegram_bot_username TEXT NOT NULL DEFAULT 'moncone_bot',
   admin_telegram_chat_id BIGINT,
+  admin_email TEXT NOT NULL DEFAULT 'dolgoonoo473@gmail.com',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 INSERT INTO public.app_settings (id) VALUES (1) ON CONFLICT DO NOTHING;
@@ -199,16 +200,27 @@ UPDATE public.profiles SET payment_code = public.generate_payment_code() WHERE p
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE new_code TEXT;
+DECLARE
+  new_code TEXT;
+  cfg_admin_email TEXT;
 BEGIN
   new_code := public.generate_payment_code();
+  
+  -- Fetch dynamic admin email from settings, fallback to standard admin email
+  SELECT admin_email INTO cfg_admin_email FROM public.app_settings WHERE id = 1;
+  IF cfg_admin_email IS NULL THEN
+    cfg_admin_email := 'dolgoonoo473@gmail.com';
+  END IF;
+
   INSERT INTO public.profiles (id, display_name, payment_code, subscription_status)
   VALUES (NEW.id, COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)), new_code, 'free');
-  IF NEW.email = 'dolgoonoo473@gmail.com' THEN
+  
+  IF NEW.email = LOWER(cfg_admin_email) THEN
     INSERT INTO public.user_roles (user_id, role) VALUES (NEW.id, 'admin');
   ELSE
     INSERT INTO public.user_roles (user_id, role) VALUES (NEW.id, 'user');
   END IF;
+  
   INSERT INTO public.subscriptions (user_id, tier) VALUES (NEW.id, 'free');
   RETURN NEW;
 END;
@@ -342,7 +354,8 @@ END $$;
 
 -- ХАМГИЙН ЧУХАЛ: Admin role нэмэх
 INSERT INTO public.user_roles (user_id, role)
-SELECT id, 'admin' FROM auth.users WHERE email = 'dolgoonoo473@gmail.com'
+SELECT id, 'admin' FROM auth.users 
+WHERE email = (SELECT admin_email FROM public.app_settings WHERE id = 1)
 ON CONFLICT (user_id, role) DO NOTHING;
 
 -- Backfill: handle_new_user trigger-гүйгээр бүртгэгдсэн хэрэглэгчдэд user role нэмэх
@@ -357,5 +370,6 @@ FROM auth.users WHERE id NOT IN (SELECT id FROM public.profiles)
 ON CONFLICT DO NOTHING;
 
 -- ШАЛГАХ: Admin role нэмэгдсэн эсэх
-SELECT u.email, r.role FROM auth.users u JOIN public.user_roles r ON r.user_id = u.id WHERE u.email = 'dolgoonoo473@gmail.com';
--- Доор "dolgoonoo473@gmail.com | admin" харагдвал бүгд амжилттай!
+SELECT u.email, r.role FROM auth.users u JOIN public.user_roles r ON r.user_id = u.id 
+WHERE u.email = (SELECT admin_email FROM public.app_settings WHERE id = 1);
+-- Дээр тохируулсан админ имэйл | admin харагдвал бүгд амжилттай!

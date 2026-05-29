@@ -4,7 +4,7 @@ import { createHash, timingSafeEqual } from "crypto";
 import { tgSend } from "@/lib/telegram.server";
 import { uploadToR2 } from "@/lib/r2.server";
 
-const ADMIN_EMAIL = "dolgoonoo473@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || import.meta.env.VITE_ADMIN_EMAIL || "dolgoonoo473@gmail.com";
 
 function deriveSecret(token: string) {
   return createHash("sha256").update(`telegram-webhook:${token}`).digest("base64url");

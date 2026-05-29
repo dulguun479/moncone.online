@@ -20,6 +20,6 @@
     "VITE_SUPABASE_PROJECT_ID": "voyvmtztvqttrtbughpb",
     "VITE_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_enOJezjXm7pFGyw_NWRD0g_ROYijeKb",
     "VITE_SUPABASE_URL": "https://voyvmtztvqttrtbughpb.supabase.co",
-    "SMS_MN_API_KEY": "1YFHPXMGEHWYZ864Y31MYMXW",
+    "SMS_MN_API_KEY": "{your-sms-mn-api-key}",
   },
 }

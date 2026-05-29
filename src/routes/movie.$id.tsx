@@ -108,24 +108,49 @@ function MovieDetail() {
     if (movie.video_url.endsWith(".m3u8")) {
       const Hls = (window as any).Hls;
       if (Hls && Hls.isSupported()) {
-        const hls = new Hls({
-          maxMaxBufferLength: 30, // Conserve bandwidth
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          const token = session?.access_token;
+          const hls = new Hls({
+            maxMaxBufferLength: 30, // Conserve bandwidth
+            xhrSetup: (xhr: any, url: string) => {
+              if (url.includes("/api/public/transcode-key") && token) {
+                xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+              }
+            }
+          });
+          hls.loadSource(movie.video_url!);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().catch(() => {});
+          });
+          (video as any)._hls = hls;
         });
-        hls.loadSource(movie.video_url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(() => {});
-        });
+
         return () => {
-          hls.destroy();
+          const v = document.getElementById("movie-player") as any;
+          if (v && v._hls) {
+            v._hls.destroy();
+            delete v._hls;
+          }
         };
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
         // Native Safari HLS support
-        video.src = movie.video_url;
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          const token = session?.access_token;
+          if (token) {
+            const urlObj = new URL(movie.video_url!, window.location.origin);
+            urlObj.searchParams.set("token", token);
+            video.src = urlObj.toString();
+          } else {
+            video.src = movie.video_url!;
+          }
+          video.play().catch(() => {});
+        });
       }
     } else {
       // Direct MP4 URL
       video.src = movie.video_url;
+      video.play().catch(() => {});
     }
   }, [playing, canPlay, hlsLoaded, movie?.video_url]);
 
@@ -219,40 +244,42 @@ function MovieDetail() {
           playing && canPlay ? "mt-6" : "-mt-24"
         } transition-all duration-300`}
       >
-        <div className="flex flex-col gap-6 rounded-lg border border-border/40 bg-card/80 p-6 backdrop-blur sm:flex-row">
+        <div className="flex flex-col gap-8 rounded-2xl border border-white/5 bg-card/45 p-8 backdrop-blur-2xl sm:flex-row glass-card shadow-2xl shadow-black/80 relative overflow-hidden">
           {movie.poster_url && (
             <img
               src={movie.poster_url}
               alt={title}
-              className="hidden h-64 w-44 rounded-md object-cover sm:block"
+              className="hidden h-64 w-44 rounded-xl object-cover sm:block border border-white/5 transition-transform duration-500 hover:scale-[1.02]"
               style={{ boxShadow: "var(--shadow-poster)" }}
             />
           )}
           <div className="flex-1 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+              <span className="rounded-md bg-secondary/80 px-2.5 py-0.5 text-xs text-secondary-foreground font-semibold border border-white/5">
                 {movie.year}
               </span>
-              <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+              <span className="rounded-md bg-secondary/80 px-2.5 py-0.5 text-xs text-secondary-foreground font-semibold border border-white/5">
                 {movie.genre}
               </span>
               {movie.duration_min && (
-                <span className="rounded-sm bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
+                <span className="rounded-md bg-secondary/80 px-2.5 py-0.5 text-xs text-secondary-foreground font-semibold border border-white/5">
                   {movie.duration_min} {t("common.min")}
                 </span>
               )}
               {movie.is_premium ? (
-                <span className="inline-flex items-center gap-1 rounded-sm bg-premium px-2 py-0.5 text-xs font-semibold text-premium-foreground">
+                <span className="inline-flex items-center gap-1 rounded-md bg-premium px-2.5 py-0.5 text-xs font-bold text-premium-foreground shadow-sm shadow-premium/20 animate-pulse border border-premium/30">
                   <Crown className="h-3 w-3" /> {t("common.premium")}
                 </span>
               ) : (
-                <span className="rounded-sm bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                <span className="rounded-md bg-primary/20 px-2.5 py-0.5 text-xs font-bold text-primary border border-primary/20">
                   {t("common.free")}
                 </span>
               )}
             </div>
-            <h1 className="text-3xl font-bold sm:text-4xl">{title}</h1>
-            <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+            <h1 className="font-display text-4xl font-bold uppercase tracking-wider text-white sm:text-5xl leading-tight drop-shadow-md">
+              {title}
+            </h1>
+            <p className="text-sm leading-relaxed text-zinc-300 font-normal">{description}</p>
             <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
               {movie.director && (
                 <p>

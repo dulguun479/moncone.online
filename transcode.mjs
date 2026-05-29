@@ -1,13 +1,15 @@
 import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 
 /**
- * moncone Local HLS Video Transcoder Pipeline
+ * moncone Local HLS Video Transcoder Pipeline with AES-128 DRM-Lite Encryption
  * 
  * This script runs FFmpeg locally to convert standard MP4 files into highly secure, 
  * adaptive segmented HLS streaming playlists (.m3u8 and .ts segments) to prevent 
  * browser download sniffing and support auto quality adjustments.
+ * Supports optional AES-128 encryption.
  */
 
 const FFMPEG_PATH = path.join(process.cwd(), "ffmpeg.exe");
@@ -22,12 +24,18 @@ if (args.length < 1 || args.includes("--help") || args.includes("-h")) {
   console.log(`
 🎬 moncone Local HLS Transcoder
 Usage:
-  node transcode.mjs <input_mp4_file> [output_directory_name]
+  node transcode.mjs <input_mp4_file> [output_directory_name] [--encrypt]
 
 Example:
-  node transcode.mjs unur_bul.mp4 unur_bul
+  node transcode.mjs unur_bul.mp4 unur_bul --encrypt
   `);
   process.exit(0);
+}
+
+const encryptIndex = args.indexOf("--encrypt");
+const isEncrypted = encryptIndex !== -1;
+if (isEncrypted) {
+  args.splice(encryptIndex, 1);
 }
 
 const inputPath = path.resolve(args[0]);
@@ -45,6 +53,30 @@ if (!fs.existsSync(outputDir)) {
 
 console.log(`🚀 Starting HLS Transcoding Pipeline for: ${path.basename(inputPath)}`);
 console.log(`📂 Output destination: ${outputDir}`);
+
+let keyInfoPath = "";
+if (isEncrypted) {
+  console.log(`🔒 AES-128 HLS Stream Encryption enabled! Generating secure dynamic key...`);
+  // Ensure the keys directory exists securely outside the public folder
+  const keysDir = path.join(process.cwd(), "keys");
+  if (!fs.existsSync(keysDir)) {
+    fs.mkdirSync(keysDir, { recursive: true });
+  }
+
+  // Generate a random 16-byte key
+  const encryptionKey = crypto.randomBytes(16);
+  const keyFilePath = path.join(keysDir, `${outputName}.key`);
+  fs.writeFileSync(keyFilePath, encryptionKey);
+  console.log(`🔑 Key generated and saved securely at: ${keyFilePath}`);
+
+  // Create key info file for FFmpeg
+  // Format:
+  // Key URL
+  // Key File Path
+  keyInfoPath = path.join(outputDir, "key_info.txt");
+  const keyUri = `/api/public/transcode-key?id=${outputName}`;
+  fs.writeFileSync(keyInfoPath, `${keyUri}\n${keyFilePath.replace(/\\/g, "/")}\n`);
+}
 
 // Multi-bitrate HLS Transcoding Parameters
 const ffmpegArgs = [
@@ -79,6 +111,7 @@ const ffmpegArgs = [
   "-f", "hls",
   "-hls_time", "6", // 6 second segments
   "-hls_playlist_type", "vod",
+  ...(isEncrypted ? ["-hls_key_info_file", keyInfoPath] : []),
   "-hls_segment_filename", path.join(outputDir, "stream_%v_%03d.ts"),
   
   // Master playlist mapping
@@ -107,8 +140,16 @@ proc.stderr.on("data", (data) => {
 });
 
 proc.on("close", (code) => {
+  // Clean up temporary key info file
+  if (keyInfoPath && fs.existsSync(keyInfoPath)) {
+    fs.unlinkSync(keyInfoPath);
+  }
+
   if (code === 0) {
     console.log(`\n✅ Success! HLS adaptive streams created in: ${outputDir}`);
+    if (isEncrypted) {
+      console.log(`🔒 Video stream is AES-128 encrypted. Decryption key is served via key server.`);
+    }
     console.log(`👉 Master Playlist File: public/videos/${outputName}/master.m3u8`);
     console.log(`\nTo host this on Cloudflare R2, upload the entire folder: public/videos/${outputName}/`);
   } else {

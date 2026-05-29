@@ -261,14 +261,18 @@ function Login() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col justify-center px-6 py-12">
-      <div className="mb-8 flex flex-col items-center gap-2 animate-fade-in">
-        <Film className="h-10 w-10 text-primary animate-pulse" />
-        <h1 className="text-2xl font-bold tracking-tight text-white">Нэвтрэх / Бүртгүүлэх</h1>
-        <p className="text-xs text-muted-foreground text-center">
+      <div className="mb-8 flex flex-col items-center gap-2.5 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 shadow-lg shadow-primary/5">
+          <Film className="h-7 w-7 text-primary animate-pulse" />
+        </div>
+        <h1 className="font-display text-3xl font-bold uppercase tracking-wider text-white mt-2">
+          Нэвтрэх / Бүртгүүлэх
+        </h1>
+        <p className="text-xs text-muted-foreground/80 text-center">
           Имэйл эсвэл Утасны дугаараараа шууд нэвтэрнэ үү.
         </p>
       </div>
-      <div className="space-y-6 rounded-lg border border-border/60 bg-card p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
+      <div className="space-y-6 rounded-2xl border border-white/10 bg-card/50 p-8 shadow-2xl relative overflow-hidden backdrop-blur-2xl glass-card">
         {/* Method Toggle Tabs (only show if code is not sent yet) */}
         {!codeSent && (
           <div className="grid grid-cols-2 gap-1 rounded-md bg-secondary/30 p-1">

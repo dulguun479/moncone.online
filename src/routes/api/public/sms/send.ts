@@ -82,7 +82,7 @@ export const Route = createFileRoute("/api/public/sms/send")({
           }
 
           // Send SMS via sms.mn gateway
-          const smsToken = process.env.SMS_MN_API_KEY || "1YFHPXMGEHWYZ864Y31MYMXW";
+          const smsToken = process.env.SMS_MN_API_KEY || "";
           const smsMessage = `Таны moncone.online нэвтрэх нэг удаагийн код: ${otp}`;
           const formattedRecipient = `+976${cleanPhone}`;
 

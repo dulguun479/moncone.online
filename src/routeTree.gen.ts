@@ -18,6 +18,8 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MovieIdRouteImport } from './routes/movie.$id'
 import { Route as ApiPublicUploadRouteImport } from './routes/api/public/upload'
+import { Route as ApiPublicTranscodeKeyRouteImport } from './routes/api/public/transcode-key'
+import { Route as ApiPublicTranscodeRouteImport } from './routes/api/public/transcode'
 import { Route as ApiPublicSetupAdminRouteImport } from './routes/api/public/setup-admin'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicTelegramSetupRouteImport } from './routes/api/public/telegram/setup'
@@ -71,6 +73,16 @@ const ApiPublicUploadRoute = ApiPublicUploadRouteImport.update({
   path: '/api/public/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTranscodeKeyRoute = ApiPublicTranscodeKeyRouteImport.update({
+  id: '/api/public/transcode-key',
+  path: '/api/public/transcode-key',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTranscodeRoute = ApiPublicTranscodeRouteImport.update({
+  id: '/api/public/transcode',
+  path: '/api/public/transcode',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSetupAdminRoute = ApiPublicSetupAdminRouteImport.update({
   id: '/api/public/setup-admin',
   path: '/api/public/setup-admin',
@@ -119,6 +131,8 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
+  '/api/public/transcode': typeof ApiPublicTranscodeRoute
+  '/api/public/transcode-key': typeof ApiPublicTranscodeKeyRoute
   '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
   '/api/public/payments/stripe': typeof ApiPublicPaymentsStripeRoute
@@ -137,6 +151,8 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
+  '/api/public/transcode': typeof ApiPublicTranscodeRoute
+  '/api/public/transcode-key': typeof ApiPublicTranscodeKeyRoute
   '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
   '/api/public/payments/stripe': typeof ApiPublicPaymentsStripeRoute
@@ -156,6 +172,8 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/movie/$id': typeof MovieIdRoute
   '/api/public/setup-admin': typeof ApiPublicSetupAdminRoute
+  '/api/public/transcode': typeof ApiPublicTranscodeRoute
+  '/api/public/transcode-key': typeof ApiPublicTranscodeKeyRoute
   '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
   '/api/public/payments/stripe': typeof ApiPublicPaymentsStripeRoute
@@ -176,6 +194,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/movie/$id'
     | '/api/public/setup-admin'
+    | '/api/public/transcode'
+    | '/api/public/transcode-key'
     | '/api/public/upload'
     | '/api/public/cron/expire'
     | '/api/public/payments/stripe'
@@ -194,6 +214,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/movie/$id'
     | '/api/public/setup-admin'
+    | '/api/public/transcode'
+    | '/api/public/transcode-key'
     | '/api/public/upload'
     | '/api/public/cron/expire'
     | '/api/public/payments/stripe'
@@ -212,6 +234,8 @@ export interface FileRouteTypes {
     | '/signup'
     | '/movie/$id'
     | '/api/public/setup-admin'
+    | '/api/public/transcode'
+    | '/api/public/transcode-key'
     | '/api/public/upload'
     | '/api/public/cron/expire'
     | '/api/public/payments/stripe'
@@ -231,6 +255,8 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   MovieIdRoute: typeof MovieIdRoute
   ApiPublicSetupAdminRoute: typeof ApiPublicSetupAdminRoute
+  ApiPublicTranscodeRoute: typeof ApiPublicTranscodeRoute
+  ApiPublicTranscodeKeyRoute: typeof ApiPublicTranscodeKeyRoute
   ApiPublicUploadRoute: typeof ApiPublicUploadRoute
   ApiPublicCronExpireRoute: typeof ApiPublicCronExpireRoute
   ApiPublicPaymentsStripeRoute: typeof ApiPublicPaymentsStripeRoute
@@ -305,6 +331,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/transcode-key': {
+      id: '/api/public/transcode-key'
+      path: '/api/public/transcode-key'
+      fullPath: '/api/public/transcode-key'
+      preLoaderRoute: typeof ApiPublicTranscodeKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/transcode': {
+      id: '/api/public/transcode'
+      path: '/api/public/transcode'
+      fullPath: '/api/public/transcode'
+      preLoaderRoute: typeof ApiPublicTranscodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/setup-admin': {
       id: '/api/public/setup-admin'
       path: '/api/public/setup-admin'
@@ -367,6 +407,8 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   MovieIdRoute: MovieIdRoute,
   ApiPublicSetupAdminRoute: ApiPublicSetupAdminRoute,
+  ApiPublicTranscodeRoute: ApiPublicTranscodeRoute,
+  ApiPublicTranscodeKeyRoute: ApiPublicTranscodeKeyRoute,
   ApiPublicUploadRoute: ApiPublicUploadRoute,
   ApiPublicCronExpireRoute: ApiPublicCronExpireRoute,
   ApiPublicPaymentsStripeRoute: ApiPublicPaymentsStripeRoute,
@@ -378,13 +420,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

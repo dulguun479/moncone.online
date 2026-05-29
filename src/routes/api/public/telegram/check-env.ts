@@ -32,7 +32,8 @@ export const Route = createFileRoute("/api/public/telegram/check-env")({
             listUsersResult = { ok: false, error: error.message };
           } else {
             const emails = data.users.map((u: any) => u.email);
-            const foundAdmin = emails.includes("dolgoonoo473@gmail.com");
+            const adminEmail = process.env.ADMIN_EMAIL || import.meta.env.VITE_ADMIN_EMAIL || "dolgoonoo473@gmail.com";
+            const foundAdmin = emails.includes(adminEmail.toLowerCase());
             listUsersResult = {
               ok: true,
               count: data.users.length,
