@@ -1836,6 +1836,8 @@ function TranscoderTab() {
               <video
                 id="hls-preview-player"
                 controls
+                controlsList="nodownload"
+                onContextMenu={(e) => e.preventDefault()}
                 autoPlay
                 className="h-full w-full"
               />

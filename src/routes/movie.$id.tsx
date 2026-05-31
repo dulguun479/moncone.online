@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { MovieCard } from "@/components/movie-card";
 import { Button } from "@/components/ui/button";
 import { Crown, Lock, Play } from "lucide-react";
+import { AdsterraBanner } from "@/components/adsterra-banner";
 
 type Movie = {
   id: string;
@@ -60,6 +61,49 @@ function MovieDetail() {
   const [related, setRelated] = useState<Movie[]>([]);
   const [playing, setPlaying] = useState(false);
   const [hlsLoaded, setHlsLoaded] = useState(false);
+  const [showAdGate, setShowAdGate] = useState(false);
+  const [adCountdown, setAdCountdown] = useState(5);
+  const [adPassed, setAdPassed] = useState(false);
+  const [adLink, setAdLink] = useState("https://mglguide.com/the-most-beautiful-lakes-in-mongolia/");
+
+  // Dynamically load active monetization direct ad link from Supabase
+  useEffect(() => {
+    supabase
+      .from("ads")
+      .select("link_url")
+      .eq("is_active", true)
+      .contains("placements", ["movie"])
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data[0]?.link_url) {
+          setAdLink(data[0].link_url);
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!showAdGate) return;
+    try {
+      const adWindow = window.open(adLink, "_blank");
+      if (adWindow) {
+        adWindow.blur();
+        window.focus();
+      }
+    } catch (e) {
+      console.warn("Pop-under blocked by browser:", e);
+    }
+    setAdCountdown(5);
+    const interval = setInterval(() => {
+      setAdCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [showAdGate, adLink]);
 
   useEffect(() => {
     setPlaying(false);
@@ -201,11 +245,87 @@ function MovieDetail() {
   return (
     <div className="pb-16">
       <div className="relative">
-        {playing && canPlay ? (
+        {showAdGate ? (
+          <div className="aspect-video w-full bg-black flex flex-col items-center justify-center p-8 text-center relative overflow-hidden border border-white/5 shadow-2xl">
+            {/* Background glow overlay */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-rose-950/20 via-zinc-950 to-amber-950/20 opacity-90" />
+            
+            <div className="relative z-10 max-w-md w-full px-4 flex flex-col items-center">
+              {/* Circular progress loader */}
+              <div className="relative w-24 h-24 flex items-center justify-center mb-6">
+                <svg className="absolute w-full h-full transform -rotate-90">
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="rgba(255,255,255,0.05)"
+                    strokeWidth="6"
+                    fill="transparent"
+                  />
+                  <circle
+                    cx="48"
+                    cy="48"
+                    r="40"
+                    stroke="var(--color-primary, #e11d48)"
+                    strokeWidth="6"
+                    fill="transparent"
+                    strokeDasharray={2 * Math.PI * 40}
+                    strokeDashoffset={2 * Math.PI * 40 * (1 - adCountdown / 5)}
+                    className="transition-all duration-1000 ease-linear"
+                  />
+                </svg>
+                <span className="font-display text-3xl font-extrabold text-white animate-pulse">
+                  {adCountdown}
+                </span>
+              </div>
+
+              <h3 className="font-display text-2xl font-bold text-white uppercase tracking-wider mb-2">
+                Видео ачаалж байна
+              </h3>
+              <p className="text-sm text-zinc-400 mb-6 font-sans">
+                Ивээн тэтгэгчийн зар сурталчилгаа дуусахад кино автоматаар тоглогдож эхэлнэ.
+              </p>
+
+              <div className="flex flex-col gap-3 w-full">
+                <a
+                  href={adLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 px-5 py-3 text-sm font-semibold text-white transition-all shadow-md backdrop-blur-md"
+                >
+                  Зар үзэх (Шинэ цонх)
+                </a>
+
+                {adCountdown === 0 ? (
+                  <Button
+                    size="lg"
+                    className="w-full font-bold uppercase tracking-wider animate-bounce bg-primary text-white"
+                    onClick={() => {
+                      setShowAdGate(false);
+                      setAdPassed(true);
+                      setPlaying(true);
+                    }}
+                  >
+                    Кино үзэх
+                  </Button>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full inline-flex items-center justify-center rounded-xl bg-zinc-900 border border-white/5 px-5 py-3 text-sm font-semibold text-zinc-500 cursor-not-allowed"
+                  >
+                    Хүлээх... ({adCountdown}с)
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : playing && canPlay ? (
           <div className="aspect-video w-full bg-black">
             <video
               id="movie-player"
               controls
+              controlsList="nodownload"
+              onContextMenu={(e) => e.preventDefault()}
               autoPlay
               preload="metadata"
               className="h-full w-full"
@@ -310,7 +430,13 @@ function MovieDetail() {
                 <Button
                   size="lg"
                   className="gap-2"
-                  onClick={() => setPlaying(true)}
+                  onClick={() => {
+                    if (movie.is_premium || adPassed) {
+                      setPlaying(true);
+                    } else {
+                      setShowAdGate(true);
+                    }
+                  }}
                   disabled={!movie.video_url}
                 >
                   <Play className="h-5 w-5 fill-current" /> {t("common.play")}
@@ -331,6 +457,16 @@ function MovieDetail() {
           </div>
         </section>
       )}
+
+      {/* Adsterra Banners at the bottom */}
+      <div className="pt-12 flex flex-col items-center gap-4 border-t border-white/5 mx-auto max-w-7xl px-4 sm:px-6 w-full">
+        <div className="hidden sm:block w-full">
+          <AdsterraBanner format="desktop" />
+        </div>
+        <div className="block sm:hidden w-full">
+          <AdsterraBanner format="mobile" />
+        </div>
+      </div>
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Play, Search, Info } from "lucide-react";
 import { AdSlot } from "@/components/ad-slot";
+import { AdsterraBanner } from "@/components/adsterra-banner";
 
 type Movie = {
   id: string;
@@ -175,6 +176,16 @@ function Index() {
           {filtered.length === 0 && (
             <p className="py-16 text-center text-muted-foreground">Кино олдсонгүй</p>
           )}
+        </div>
+
+        {/* Adsterra Banners at the bottom */}
+        <div className="pt-12 flex flex-col items-center gap-4 border-t border-white/5 w-full">
+          <div className="hidden sm:block w-full">
+            <AdsterraBanner format="desktop" />
+          </div>
+          <div className="block sm:hidden w-full">
+            <AdsterraBanner format="mobile" />
+          </div>
         </div>
       </section>
     </div>

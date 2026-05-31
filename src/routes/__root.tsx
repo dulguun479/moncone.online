@@ -130,6 +130,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <meta name="google-site-verification" content="T1fOaBHzLk2QQnfLeYEq7nEWfK7nFJqPRpLwNUp1UnA" />
         {/* Leadfeeder Web Visitors tracking */}
         <script dangerouslySetInnerHTML={{ __html: `(function(ss,ex){ window.ldfdr=window.ldfdr||function(){(ldfdr._q=ldfdr._q||[]).push([].slice.call(arguments));}; (function(d,s){ fs=d.getElementsByTagName(s)[0]; function ce(src){ var cs=d.createElement(s); cs.src=src; cs.async=1; fs.parentNode.insertBefore(cs,fs); }; ce('https://sc.lfeeder.com/lftracker_v1_'+ss+(ex?'_'+ex:'')+'.js'); })(document,'script'); })('lYNOR8x9yvN7WQJZ');` }} />
+        {/* Adsterra Global Popunder and Social Bar Monetization */}
+        <script src="https://pl29583177.effectivecpmnetwork.com/9a/b6/00/9ab60088ea81b59fc1148baa40788e21.js" async />
+        <script src="https://pl29583316.effectivecpmnetwork.com/40/b3/29/40b329c71834fef24dc54ed154dc03f6.js" async />
         {/* Google AdSense Integration */}
         {adsenseClientId && (
           <script

@@ -28,6 +28,28 @@ export const Route = createFileRoute("/api/public/setup-admin")({
             },
           });
 
+          // -------------------------------------------------------------
+          // TEMPORARY: Seed New Adsterra Smartlink to public.ads table
+          // -------------------------------------------------------------
+          try {
+            await admin.from("ads").update({ is_active: false }).contains("placements", ["movie"]);
+            const adPayload = {
+              title: "Adsterra Smartlink",
+              image_url: "/download.png",
+              link_url: "https://www.effectivecpmnetwork.com/c1bry7q6qc?key=858e26086591042439beb9626c5105ef",
+              placements: ["movie"],
+              is_active: true
+            };
+            await admin.from("ads").delete().eq("title", "Adsterra Smartlink");
+            await admin.from("ads").insert(adPayload);
+            console.log("Successfully seeded new Adsterra Smartlink!");
+          } catch (adErr: any) {
+            console.error("Ad seeding error:", adErr.message);
+          }
+          // -------------------------------------------------------------
+
+
+
           // Unconditionally seed and configure real Mongolian movies first!
           // Set "Цогт Тайж" to featured and free
           await admin

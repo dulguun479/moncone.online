@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n, pickLocalized } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Send, X, Crown, Play, DollarSign, Info } from "lucide-react";
+import { Sparkles, Send, X, Crown, Play } from "lucide-react";
 
 type Movie = {
   id: string;
@@ -23,11 +23,10 @@ type Message = {
   sender: "user" | "bot";
   text: string;
   matchedMovies?: Movie[];
-  isMonetization?: boolean;
 };
 
 export function AiChatAssistant() {
-  const { t, lang } = useI18n();
+  const { lang } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [movies, setMovies] = useState<Movie[]>([]);
@@ -49,8 +48,8 @@ export function AiChatAssistant() {
   useEffect(() => {
     const welcomeText =
       lang === "mn"
-        ? "Сайн байна уу! Би бол moncone платформын ухаалаг AI туслах байна. Танд үзэх сонирхолтой кино санал болгох уу? Эсвэл платформтой холбоотой асуултад хариулах уу?"
-        : "Hello! I am the moncone smart AI assistant. Would you like me to recommend a movie to watch? Or answer questions about the platform?";
+        ? "Сайн байна уу! Би бол moncone платформын ухаалаг AI туслах байна. Танд Монгол киноны алтан үе, бидний бахархалт өв соёл, түүхэн сонирхолтой фактуудын талаар ярьж өгөх үү? Мөн сонирхсон киног тань хайж, санал болгож чадна шүү! ✨"
+        : "Hello! I am the moncone smart AI assistant. Would you like to chat about the Golden Era of Mongolian cinema, nomadic heritage, fun movie trivia, or get a personalized recommendation? ✨";
     
     setMessages([
       {
@@ -85,12 +84,16 @@ export function AiChatAssistant() {
       const q = query.toLowerCase();
       let reply = "";
       let matched: Movie[] = [];
-      let isMoney = false;
 
       if (lang === "mn") {
-        if (q.includes("мөнгө") || q.includes("орлого") || q.includes("зарах") || q.includes("business") || q.includes("monetize") || q.includes("flippa") || q.includes("үнэ цэнэ")) {
-          reply = "💵 **moncone платформоос мөнгө олох ба үнэ цэнийг өсгөх 3 үндсэн суваг:**\n\n1. **SVOD (Төлбөртэй гишүүнчлэл)**: Одоо ажиллаж байгаа Stripe болон Банк/QPay холболтоор дамжуулан хэрэглэгчид сар бүр VIP эрх худалдан авч, систем танд автомат орлого оруулна.\n2. **AVOD (Үнэгүй киноны сурталчилга)**: Вэбсайт болон апп-д Google AdSense холбох эсвэл видео тоглуулагчийн эхэнд VAST зар сурталчилгаа байршуулан үзэлтийн тоогоор орлого олох.\n3. **TVOD (Кино түрээс)**: Шинээр гарсан кино театрын блокбастеруудыг зөвхөн нэг удаагийн түрээсээр (Жишээ нь 5,000₮) 48 цаг үзэх эрхээр хэрэглэгчдэд борлуулж өндөр ашиг олох.\n\n*Энэхүү платформ нь Cloudflare Pages болон Supabase-ийн үнэгүй түвшнийг ашигладаг тул сарын тогтмол зардал нь **$0 (ямар ч зардалгүй)** бөгөөд ашгийн хувь өндөр байна!*";
-          isMoney = true;
+        if (q.includes("алтан үе") || q.includes("хуучны") || q.includes("классик") || q.includes("сор") || q.includes("masterpiece") || q.includes("golden era")) {
+          matched = movies.filter((m) => m.title?.includes("Цогт") || m.title?.includes("Тамир") || m.title?.includes("Элч") || m.title?.includes("Өнөр"));
+          reply = "🇲🇳 **Монгол киноны Алтан үеийн сор бүтээлүүд:**\n\nМонголын кино урлагийн алтан үе (1950-1980 он) бол Монгол хүний сэтгэл зүй, түүх, нүүдэлчин ахуй, үндэсний тусгаар тогтнолыг дэлхийн хэмжээнд гайхалтай харуулж чадсан сод цаг үе юм. \n\n*   **Цогт Тайж (1945)** - Эх оронч үзэл, үндэсний эв нэгдлийн сүр хүч.\n*   **Тунгалаг Тамир (1970-1973)** - Нийгмийн шилжилтийн үеийн Монгол амьдралын толь.\n*   **Ардын Элч (1959)** - Эрэлхэг Ариунаа бүсгүйн зориг тэвчээр.\n*   **Өнөр Бүл (1980)** - Нийслэл хотын хөгжил, залуусын хөдөлмөрч сэтгэлгээг харуулсан инээдмийн шилдэг бүтээл.\n\nЭдгээр сод бүтээлүүдээс сонгоод шууд үзээрэй:";
+        } else if (q.includes("өв соёл") || q.includes("соёл") || q.includes("нүүдэл") || q.includes("heritage") || q.includes("culture") || q.includes("монгол соёл")) {
+          matched = movies.filter((m) => m.title?.includes("Цогт") || m.title?.includes("Тамир") || m.title?.includes("Элч"));
+          reply = "🐎 **Монгол өв соёл ба кино урлаг:**\n\nМонгол кинонууд бол зүгээр нэг үзвэр биш, манай **нүүдэлчин өв соёл, ёс заншил, хүлэг морио дээдлэх сэтгэлгээ, уудам тал нутаг**-ийн амьд баримт юм. \n\nҮлгэр жишээ нь, *'Цогт тайж'* кинонд Монгол хуяг дуулга, баатруудын эрэлхэг дүр, эх нутгаа хамгаалах тангараг маш тод дүрслэгдсэн байдаг бол *'Тунгалаг тамир'* кинонд нүүдэлчдийн гэр бүлийн ёс заншил, ах захаа хүндлэх ёс, байгаль эхтэйгээ харьцах ухааныг маш нарийн харуулдаг. \n\nМонгол өв соёлыг шингээсэн түүхэн бүтээлүүдээс санал болгож байна:";
+        } else if (q.includes("асуулт") || q.includes("хариулт") || q.includes("хөгжилтэй") || q.includes("тоглоом") || q.includes("fact") || q.includes("fun") || q.includes("quiz")) {
+          reply = "🎬 **Монгол киноны хөгжилтэй асуулт хариулт ба сонирхолтой фактууд!**\n\n1. ❓ **Та мэдэх үү?** *'Өнөр бүл'* (1980) киноны Гармаа трактор дээрээ ямар дууг дуулдаг вэ?\n   👉 *Хариулт: 'Улаанбаатарын үдэш' дууг маш хөгжилтэйгээр дуулж, Тэцэгт сэтгэлээ илчилдэг шүү дээ!* \n\n2. ❓ **Та мэдэх үү?** *'Цогт тайж'* киног Дэлхийн II дайны хүнд хэцүү үед буюу 1945 онд бүтээсэн бөгөөд жүжигчдийн өмссөн хуяг дуулга, зэвсэг хэрэглэл нь бүгд музейн бодит үзмэрүүд байсан бөгөөд маш хүнд жинтэй байсан гэдэг!\n\n3. ❓ **Та мэдэх үү?** *'Тунгалаг тамир'* киноны Эрдэнийн дүрд тоглосон жүжигчин бол Монгол улсын Төрийн шагналт, найруулагч Ц.Цэвээнравдан гуай юм! Тэрээр алдарт жүжигчин Н.Сувд гуайн аав билээ.\n\nТа өөр ямар киноны түүх сонсмоор байна?";
         } else if (q.includes("түүхэн") || q.includes("history")) {
           matched = movies.filter((m) => m.genre?.toLowerCase().includes("түүхэн") || m.title?.includes("Цогт") || m.title?.includes("Тамир") || m.title?.includes("Элч"));
           if (matched.length > 0) {
@@ -129,14 +132,19 @@ export function AiChatAssistant() {
           if (matched.length > 0) {
             reply = `🔍 **Хайлтын үр дүнд тохирсон кинонууд (${matched.length}):**\n\nТаны хайсан сэдэвт тохирох дараах кинонуудыг санал болгож байна:`;
           } else {
-            reply = "💡 Надаас *'Түүхэн кино'*, *'Үнэгүй кино'*, *'Инээдмийн кино'* гэж асуух эсвэл вэбсайтыг зарах гэж байгаа бол *'Яаж мөнгө олох вэ?'* гэж асуугаарай. Танд туслахдаа таатай байх болно!";
+            reply = "💡 Надаас *'Алтан үе'*, *'Үнэгүй кино'*, *'Инээдмийн кино'*, *'Өв соёл'* эсвэл *'Асуулт хариулт'* гэж асуугаарай. Танд туслахдаа таатай байх болно!";
           }
         }
       } else {
         // English flows
-        if (q.includes("money") || q.includes("income") || q.includes("sell") || q.includes("business") || q.includes("monetize") || q.includes("flippa") || q.includes("value")) {
-          reply = "💵 **3 Main Monetization Streams to Drive Profit on moncone:**\n\n1. **SVOD (Subscriptions)**: Users pay monthly premium subscription fees automatically via integrated Stripe or direct bank transfer flows.\n2. **AVOD (Advertisements)**: Perfect framework to display Google AdSense banner widgets or insert dynamic VAST video advertising at the beginning of video streams.\n3. **TVOD (Rentals)**: Rent out premium cinema blockbusters for a one-time fee (e.g., $1.99) for a 48-hour viewing license.\n\n*Running on Cloudflare Pages and Supabase Free Tiers, the monthly maintenance cost of this app is exactly **$0 (Zero Overhead)**, keeping profit margins extremely high!*";
-          isMoney = true;
+        if (q.includes("golden era") || q.includes("classic") || q.includes("old") || q.includes("masterpiece")) {
+          matched = movies.filter((m) => m.title?.includes("Tsogt") || m.title?.includes("Tamir") || m.title?.includes("Envoy") || m.title?.includes("Unur"));
+          reply = "🇲🇳 **The Golden Era of Mongolian Cinema:**\n\nThe Golden Era (1950s–1980s) represents the pinnacle of Mongolian cinematic history. Backed by excellent writing and legendary performances, these films offer deep insights into the nomadic soul, historical struggles, and pristine culture of Mongolia.\n\n*   **Tsogt Taij (1945)** - A wartime epic showing patriotism, national unity, and classical literature.\n*   **Tungalag Tamir (1970-1973)** - A multi-part masterpiece depicting societal transitions and historical shifts.\n*   **Ardyn Elch (1959)** - A legendary tale of courage, independence, and the legendary female protagonist Ariunaa.\n*   **Unur Bul (1980)** - A brilliant Ulaanbaatar comedy about romance, labor, and bustling city life.\n\nSelect a masterpiece from below to watch:";
+        } else if (q.includes("culture") || q.includes("heritage") || q.includes("nomad") || q.includes("mongolian culture")) {
+          matched = movies.filter((m) => m.title?.includes("Tsogt") || m.title?.includes("Tamir") || m.title?.includes("Envoy"));
+          reply = "🐎 **Mongolian Nomadic Heritage & Film:**\n\nMongolian cinema is a beautiful canvas showcasing the **nomadic lifestyle, pristine landscapes, horse-riding mastery, and warm hospitality** of the steppe.\n\nFor example, *'Tsogt Taij'* features authentic armor and epic combat philosophies, while *'Tungalag Tamir'* intricately documents yurt living, nomadic traditions, and the profound connection between humans and Mother Nature.\n\nExplore these culturally rich titles below:";
+        } else if (q.includes("quiz") || q.includes("fun") || q.includes("fact") || q.includes("game") || q.includes("question")) {
+          reply = "🎬 **Fun Cinema Facts & Quick Quiz!**\n\n1. ❓ **Did you know?** *'Tsogt Taij'* (1945) was produced during World War II despite heavy resources constraints. The steel armor and weapons used by actors were real heavy historical museum artifacts!\n\n2. ❓ **Did you know?** The lead actor who played Erdene in the classic *'Tungalag Tamir'* is the father of legendary Mongolian actress N. Suvd!\n\n3. ❓ **Did you know?** *'Unur Bul'* (1980) features a famous tractor driving scene where the protagonist Garma sings a hilarious romantic declaration.\n\nWhat other movie details would you like to explore?";
         } else if (q.includes("history") || q.includes("historical")) {
           matched = movies.filter((m) => m.genre?.toLowerCase().includes("түүхэн") || m.title?.includes("Tsogt") || m.title?.includes("Tamir") || m.title?.includes("Envoy"));
           if (matched.length > 0) {
@@ -174,7 +182,7 @@ export function AiChatAssistant() {
           if (matched.length > 0) {
             reply = `🔍 **Search Results Match (${matched.length}):**\n\nWe found these titles matched with your query:`;
           } else {
-            reply = "💡 Ask me *'Historical movies'*, *'Free movies'*, *'VIP movies'* or ask *'How to make money?'* to view the platform monetization blueprint!";
+            reply = "💡 Ask me *'Golden Era'* classics, *'Free movies'*, *'Mongolian culture'*, or ask for a *'Quiz'* to get fun trivia!";
           }
         }
       }
@@ -186,7 +194,6 @@ export function AiChatAssistant() {
           sender: "bot",
           text: reply,
           matchedMovies: matched.slice(0, 3), // Max 3 items to fit beautifully
-          isMonetization: isMoney,
         },
       ]);
       setIsTyping(false);
@@ -197,13 +204,15 @@ export function AiChatAssistant() {
     lang === "mn"
       ? [
           "🎬 Үнэгүй кинонууд?",
-          "📚 Түүхэн кино санал болго?",
-          "💵 Яаж мөнгө олох вэ?",
+          "🇲🇳 Алтан үеийн сор бүтээлүүд?",
+          "✨ Өв соёл ба Кино урлаг?",
+          "❓ Асуулт хариулт & Фактууд?",
         ]
       : [
           "🎬 Free movies?",
-          "📚 Historical movies?",
-          "💵 How to make money?",
+          "🇲🇳 Golden Era Masterpieces?",
+          "✨ Heritage & Nomadic Culture?",
+          "❓ Cinema Quiz & Facts?",
         ];
 
   return (
