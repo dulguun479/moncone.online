@@ -1,9 +1,12 @@
 import { useEffect, useRef } from "react";
+import { useAuth } from "@/lib/auth";
 
 export function AdsterraBanner({ format }: { format: "desktop" | "mobile" }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { tier } = useAuth();
 
   useEffect(() => {
+    if (tier === "premium") return;
     if (!containerRef.current) return;
 
     // Clear previous children
@@ -27,7 +30,9 @@ export function AdsterraBanner({ format }: { format: "desktop" | "mobile" }) {
     script.async = true;
 
     containerRef.current.appendChild(script);
-  }, [format]);
+  }, [format, tier]);
+
+  if (tier === "premium") return null;
 
   return (
     <div className="flex items-center justify-center my-6 overflow-hidden min-h-[50px] w-full">

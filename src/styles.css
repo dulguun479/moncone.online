@@ -140,6 +140,21 @@
     letter-spacing: -0.03em;
   }
   
+  /* iOS Safe Area, input autofocus zoom prevention, and touch target optimizations */
+  input[type="text"], 
+  input[type="email"], 
+  input[type="password"], 
+  input[type="number"], 
+  select, 
+  textarea {
+    font-size: 16px !important; /* Prevents auto-zooming on focus in iOS Safari */
+  }
+
+  button, a, select, input {
+    touch-action: manipulation; /* Removes 300ms touch delay on mobile browsers */
+    -webkit-tap-highlight-color: transparent; /* Removes blue tap overlay on mobile Safari */
+  }
+
   /* Styled dynamic scrollbars */
   ::-webkit-scrollbar {
     width: 8px;

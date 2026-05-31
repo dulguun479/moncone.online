@@ -9,7 +9,7 @@ import {
 import { useEffect } from "react";
 import appCss from "../styles.css?url";
 import { I18nProvider } from "@/lib/i18n";
-import { AuthProvider } from "@/lib/auth";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import { SiteHeader } from "@/components/site-header";
 import { Toaster } from "@/components/ui/sonner";
 import { AiChatAssistant } from "@/components/ai-chat-assistant";
@@ -130,9 +130,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <meta name="google-site-verification" content="T1fOaBHzLk2QQnfLeYEq7nEWfK7nFJqPRpLwNUp1UnA" />
         {/* Leadfeeder Web Visitors tracking */}
         <script dangerouslySetInnerHTML={{ __html: `(function(ss,ex){ window.ldfdr=window.ldfdr||function(){(ldfdr._q=ldfdr._q||[]).push([].slice.call(arguments));}; (function(d,s){ fs=d.getElementsByTagName(s)[0]; function ce(src){ var cs=d.createElement(s); cs.src=src; cs.async=1; fs.parentNode.insertBefore(cs,fs); }; ce('https://sc.lfeeder.com/lftracker_v1_'+ss+(ex?'_'+ex:'')+'.js'); })(document,'script'); })('lYNOR8x9yvN7WQJZ');` }} />
-        {/* Adsterra Global Popunder and Social Bar Monetization */}
-        <script src="https://pl29583177.effectivecpmnetwork.com/9a/b6/00/9ab60088ea81b59fc1148baa40788e21.js" async />
-        <script src="https://pl29583316.effectivecpmnetwork.com/40/b3/29/40b329c71834fef24dc54ed154dc03f6.js" async />
         {/* Google AdSense Integration */}
         {adsenseClientId && (
           <script
@@ -229,6 +226,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <AuthProvider>
+          <AdsterraScriptInjector />
           <SiteHeader />
           <main className="min-h-[calc(100vh-4rem)]">
             <Outlet />
@@ -242,4 +240,40 @@ function RootComponent() {
       </I18nProvider>
     </QueryClientProvider>
   );
+}
+
+function AdsterraScriptInjector() {
+  const { tier } = useAuth();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (tier === "premium") {
+      // Clean up any existing Adsterra scripts in the head to immediately stop ads
+      const scripts = document.querySelectorAll('script[src*="effectivecpmnetwork.com"]');
+      scripts.forEach((s) => s.remove());
+      console.log("[AdBlock] Premium VIP detected. Automatically blocked invasive Adsterra scripts.");
+      return;
+    }
+
+    if (tier === "free") {
+      // Inject Adsterra Popunder and Social Bar Monetization for free tier users only
+      const scriptUrls = [
+        "https://pl29583177.effectivecpmnetwork.com/9a/b6/00/9ab60088ea81b59fc1148baa40788e21.js",
+        "https://pl29583316.effectivecpmnetwork.com/40/b3/29/40b329c71834fef24dc54ed154dc03f6.js",
+      ];
+
+      scriptUrls.forEach((url) => {
+        if (document.querySelector(`script[src="${url}"]`)) return;
+
+        const s = document.createElement("script");
+        s.src = url;
+        s.async = true;
+        document.head.appendChild(s);
+      });
+      console.log("[Adsterra] Ad scripts dynamically injected for Free tier user.");
+    }
+  }, [tier]);
+
+  return null;
 }
