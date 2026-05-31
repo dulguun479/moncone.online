@@ -25,7 +25,10 @@ import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/publi
 import { Route as ApiPublicTelegramSetupRouteImport } from './routes/api/public/telegram/setup'
 import { Route as ApiPublicTelegramCheckEnvRouteImport } from './routes/api/public/telegram/check-env'
 import { Route as ApiPublicSmsSendRouteImport } from './routes/api/public/sms/send'
+import { Route as ApiPublicPaymentsStripeVerifyRouteImport } from './routes/api/public/payments/stripe-verify'
 import { Route as ApiPublicPaymentsStripeRouteImport } from './routes/api/public/payments/stripe'
+import { Route as ApiPublicPaymentsGiftRouteImport } from './routes/api/public/payments/gift'
+import { Route as ApiPublicPaymentsCheckoutRouteImport } from './routes/api/public/payments/checkout'
 import { Route as ApiPublicCronExpireRouteImport } from './routes/api/public/cron/expire'
 
 const SignupRoute = SignupRouteImport.update({
@@ -110,11 +113,28 @@ const ApiPublicSmsSendRoute = ApiPublicSmsSendRouteImport.update({
   path: '/api/public/sms/send',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaymentsStripeVerifyRoute =
+  ApiPublicPaymentsStripeVerifyRouteImport.update({
+    id: '/api/public/payments/stripe-verify',
+    path: '/api/public/payments/stripe-verify',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPaymentsStripeRoute = ApiPublicPaymentsStripeRouteImport.update({
   id: '/api/public/payments/stripe',
   path: '/api/public/payments/stripe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaymentsGiftRoute = ApiPublicPaymentsGiftRouteImport.update({
+  id: '/api/public/payments/gift',
+  path: '/api/public/payments/gift',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPaymentsCheckoutRoute =
+  ApiPublicPaymentsCheckoutRouteImport.update({
+    id: '/api/public/payments/checkout',
+    path: '/api/public/payments/checkout',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronExpireRoute = ApiPublicCronExpireRouteImport.update({
   id: '/api/public/cron/expire',
   path: '/api/public/cron/expire',
@@ -135,7 +155,10 @@ export interface FileRoutesByFullPath {
   '/api/public/transcode-key': typeof ApiPublicTranscodeKeyRoute
   '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/payments/checkout': typeof ApiPublicPaymentsCheckoutRoute
+  '/api/public/payments/gift': typeof ApiPublicPaymentsGiftRoute
   '/api/public/payments/stripe': typeof ApiPublicPaymentsStripeRoute
+  '/api/public/payments/stripe-verify': typeof ApiPublicPaymentsStripeVerifyRoute
   '/api/public/sms/send': typeof ApiPublicSmsSendRoute
   '/api/public/telegram/check-env': typeof ApiPublicTelegramCheckEnvRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
@@ -155,7 +178,10 @@ export interface FileRoutesByTo {
   '/api/public/transcode-key': typeof ApiPublicTranscodeKeyRoute
   '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/payments/checkout': typeof ApiPublicPaymentsCheckoutRoute
+  '/api/public/payments/gift': typeof ApiPublicPaymentsGiftRoute
   '/api/public/payments/stripe': typeof ApiPublicPaymentsStripeRoute
+  '/api/public/payments/stripe-verify': typeof ApiPublicPaymentsStripeVerifyRoute
   '/api/public/sms/send': typeof ApiPublicSmsSendRoute
   '/api/public/telegram/check-env': typeof ApiPublicTelegramCheckEnvRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
@@ -176,7 +202,10 @@ export interface FileRoutesById {
   '/api/public/transcode-key': typeof ApiPublicTranscodeKeyRoute
   '/api/public/upload': typeof ApiPublicUploadRoute
   '/api/public/cron/expire': typeof ApiPublicCronExpireRoute
+  '/api/public/payments/checkout': typeof ApiPublicPaymentsCheckoutRoute
+  '/api/public/payments/gift': typeof ApiPublicPaymentsGiftRoute
   '/api/public/payments/stripe': typeof ApiPublicPaymentsStripeRoute
+  '/api/public/payments/stripe-verify': typeof ApiPublicPaymentsStripeVerifyRoute
   '/api/public/sms/send': typeof ApiPublicSmsSendRoute
   '/api/public/telegram/check-env': typeof ApiPublicTelegramCheckEnvRoute
   '/api/public/telegram/setup': typeof ApiPublicTelegramSetupRoute
@@ -198,7 +227,10 @@ export interface FileRouteTypes {
     | '/api/public/transcode-key'
     | '/api/public/upload'
     | '/api/public/cron/expire'
+    | '/api/public/payments/checkout'
+    | '/api/public/payments/gift'
     | '/api/public/payments/stripe'
+    | '/api/public/payments/stripe-verify'
     | '/api/public/sms/send'
     | '/api/public/telegram/check-env'
     | '/api/public/telegram/setup'
@@ -218,7 +250,10 @@ export interface FileRouteTypes {
     | '/api/public/transcode-key'
     | '/api/public/upload'
     | '/api/public/cron/expire'
+    | '/api/public/payments/checkout'
+    | '/api/public/payments/gift'
     | '/api/public/payments/stripe'
+    | '/api/public/payments/stripe-verify'
     | '/api/public/sms/send'
     | '/api/public/telegram/check-env'
     | '/api/public/telegram/setup'
@@ -238,7 +273,10 @@ export interface FileRouteTypes {
     | '/api/public/transcode-key'
     | '/api/public/upload'
     | '/api/public/cron/expire'
+    | '/api/public/payments/checkout'
+    | '/api/public/payments/gift'
     | '/api/public/payments/stripe'
+    | '/api/public/payments/stripe-verify'
     | '/api/public/sms/send'
     | '/api/public/telegram/check-env'
     | '/api/public/telegram/setup'
@@ -259,7 +297,10 @@ export interface RootRouteChildren {
   ApiPublicTranscodeKeyRoute: typeof ApiPublicTranscodeKeyRoute
   ApiPublicUploadRoute: typeof ApiPublicUploadRoute
   ApiPublicCronExpireRoute: typeof ApiPublicCronExpireRoute
+  ApiPublicPaymentsCheckoutRoute: typeof ApiPublicPaymentsCheckoutRoute
+  ApiPublicPaymentsGiftRoute: typeof ApiPublicPaymentsGiftRoute
   ApiPublicPaymentsStripeRoute: typeof ApiPublicPaymentsStripeRoute
+  ApiPublicPaymentsStripeVerifyRoute: typeof ApiPublicPaymentsStripeVerifyRoute
   ApiPublicSmsSendRoute: typeof ApiPublicSmsSendRoute
   ApiPublicTelegramCheckEnvRoute: typeof ApiPublicTelegramCheckEnvRoute
   ApiPublicTelegramSetupRoute: typeof ApiPublicTelegramSetupRoute
@@ -380,11 +421,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSmsSendRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/stripe-verify': {
+      id: '/api/public/payments/stripe-verify'
+      path: '/api/public/payments/stripe-verify'
+      fullPath: '/api/public/payments/stripe-verify'
+      preLoaderRoute: typeof ApiPublicPaymentsStripeVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/stripe': {
       id: '/api/public/payments/stripe'
       path: '/api/public/payments/stripe'
       fullPath: '/api/public/payments/stripe'
       preLoaderRoute: typeof ApiPublicPaymentsStripeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payments/gift': {
+      id: '/api/public/payments/gift'
+      path: '/api/public/payments/gift'
+      fullPath: '/api/public/payments/gift'
+      preLoaderRoute: typeof ApiPublicPaymentsGiftRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/payments/checkout': {
+      id: '/api/public/payments/checkout'
+      path: '/api/public/payments/checkout'
+      fullPath: '/api/public/payments/checkout'
+      preLoaderRoute: typeof ApiPublicPaymentsCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/cron/expire': {
@@ -411,7 +473,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicTranscodeKeyRoute: ApiPublicTranscodeKeyRoute,
   ApiPublicUploadRoute: ApiPublicUploadRoute,
   ApiPublicCronExpireRoute: ApiPublicCronExpireRoute,
+  ApiPublicPaymentsCheckoutRoute: ApiPublicPaymentsCheckoutRoute,
+  ApiPublicPaymentsGiftRoute: ApiPublicPaymentsGiftRoute,
   ApiPublicPaymentsStripeRoute: ApiPublicPaymentsStripeRoute,
+  ApiPublicPaymentsStripeVerifyRoute: ApiPublicPaymentsStripeVerifyRoute,
   ApiPublicSmsSendRoute: ApiPublicSmsSendRoute,
   ApiPublicTelegramCheckEnvRoute: ApiPublicTelegramCheckEnvRoute,
   ApiPublicTelegramSetupRoute: ApiPublicTelegramSetupRoute,
@@ -420,13 +485,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

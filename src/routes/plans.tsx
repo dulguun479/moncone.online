@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
@@ -7,12 +7,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { 
   Crown, Copy, Send, CheckCircle2, Smartphone, Download, 
-  X, CreditCard, Coins, Gift, AlertCircle, ArrowRight, Wallet
+  X, AlertCircle, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import { createPendingPayment, listMyPayments } from "@/lib/payments.functions";
 
-export const Route = createFileRoute("/plans")({ component: Plans });
+export const Route = createFileRoute("/plans")({ 
+  validateSearch: (search: Record<string, unknown>) => ({
+    stripe: search.stripe as string | undefined,
+    sid: search.sid as string | undefined,
+  }),
+  component: Plans 
+});
 
 type Settings = {
   bank_name: string;
@@ -33,16 +39,51 @@ function Plans() {
   const [payments, setPayments] = useState<any[]>([]);
   const [activeModal, setActiveModal] = useState<PaymentMethodId | null>(null);
   const [giftCode, setGiftCode] = useState("");
+  const [stripeLoading, setStripeLoading] = useState(false);
   
   // Crypto selection state
   const [selectedCrypto, setSelectedCrypto] = useState<"btc" | "usdt" | "sol">("usdt");
 
+  const search = useSearch({ from: "/plans" });
   const createPayment = useServerFn(createPendingPayment);
   const fetchMine = useServerFn(listMyPayments);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/login" });
   }, [user, loading, navigate]);
+
+  // Handle Stripe redirect result — verifies payment directly with Stripe (no webhook needed)
+  useEffect(() => {
+    const stripeResult = (search as any).stripe;
+    const sessionId = (search as any).sid;
+
+    if (stripeResult === "success" && sessionId && user?.id) {
+      // Verify payment with Stripe and activate VIP automatically
+      const verifyAndActivate = async () => {
+        const toastId = toast.loading("💳 Stripe төлбөр баталгаажуулж байна...");
+        try {
+          const res = await fetch("/api/public/payments/stripe-verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ session_id: sessionId, user_id: user.id }),
+          });
+          const data = await res.json() as any;
+          if (data.ok) {
+            toast.success("🎉 Stripe төлбөр амжилттай! VIP эрх идэвхжлээ!", { id: toastId });
+            await refreshMeta();
+            await loadMine();
+          } else {
+            toast.error("Баталгаажуулалт амжилтгүй: " + (data.error ?? "Алдаа"), { id: toastId });
+          }
+        } catch (e: any) {
+          toast.error("Холболтын алдаа: " + e.message, { id: toastId });
+        }
+      };
+      verifyAndActivate();
+    } else if (stripeResult === "cancel") {
+      toast.error("Stripe төлбөр цуцлагдлаа.");
+    }
+  }, [(search as any).stripe, (search as any).sid, user?.id]);
 
   useEffect(() => {
     supabase
@@ -87,84 +128,62 @@ function Plans() {
     }
   };
 
-  // Simulated Stripe automatic card activation
+  // REAL Stripe Checkout — redirects to Stripe hosted payment page
   const submitStripePayment = async () => {
-    setSubmitting(true);
+    setStripeLoading(true);
     try {
-      const res = await fetch("/api/public/payments/stripe", {
+      const res = await fetch("/api/public/payments/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "checkout.session.completed",
-          data: {
-            object: {
-              amount_total: price * 100,
-              metadata: {
-                user_id: user?.id,
-                payment_code: `STRIPE-SIM-${code}`,
-              }
-            }
-          }
-        })
+          user_id: user?.id,
+          payment_code: code,
+          amount: price,
+          email: user?.email,
+        }),
       });
-      const resData = await res.json() as any;
-      if (resData.ok) {
-        toast.success("💳 Картны төлбөр баталгаажиж, VIP эрх идэвхжлээ!");
-        await refreshMeta();
-        await loadMine();
-        setActiveModal(null);
+      const data = await res.json() as any;
+      if (data.ok && data.url) {
+        // Redirect to Stripe's hosted checkout page
+        window.location.href = data.url;
       } else {
-        toast.error("Төлбөр баталгаажуулахад алдаа гарлаа: " + resData.error);
+        toast.error("Stripe холбоос үүсгэхэд алдаа: " + (data.error ?? "Мэдэгдэхгүй"));
       }
     } catch (e: any) {
       toast.error("Холболтын алдаа: " + e.message);
     } finally {
-      setSubmitting(false);
+      setStripeLoading(false);
     }
   };
 
-  // Simulated Gift card promo code activation
+  // REAL Gift Code — validates against Supabase gift_codes table
   const handleGiftCodeSubmit = async () => {
     if (!giftCode.trim()) {
       toast.error("Гифт код оруулна уу");
       return;
     }
     setSubmitting(true);
-    setTimeout(async () => {
-      try {
-        // Direct premium update simulation via backend webhook metadata format
-        const res = await fetch("/api/public/payments/stripe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "checkout.session.completed",
-            data: {
-              object: {
-                amount_total: price * 100,
-                metadata: {
-                  user_id: user?.id,
-                  payment_code: `GIFT-${giftCode.toUpperCase()}-${code}`,
-                }
-              }
-            }
-          })
-        });
-        const resData = await res.json() as any;
-        if (resData.ok) {
-          toast.success(`🎁 Гифт код [${giftCode.toUpperCase()}] амжилттай идэвхжлээ! Та одоо VIP гишүүн боллоо.`);
-          setGiftCode("");
-          await refreshMeta();
-          await loadMine();
-          setActiveModal(null);
-        } else {
-          toast.error("Гифт код хүчингүй байна");
-        }
-      } catch (e: any) {
-        toast.error("Алдаа гарлаа: " + e.message);
-      } finally {
-        setSubmitting(false);
+    try {
+      const res = await fetch("/api/public/payments/gift", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user?.id, code: giftCode.trim() }),
+      });
+      const data = await res.json() as any;
+      if (data.ok) {
+        toast.success(`🎁 Гифт код амжилттай идэвхжлээ! ${data.days} хоногийн VIP эрх нэмэгдлээ.`);
+        setGiftCode("");
+        await refreshMeta();
+        await loadMine();
+        setActiveModal(null);
+      } else {
+        toast.error(data.error ?? "Код хүчингүй байна");
       }
-    }, 1000);
+    } catch (e: any) {
+      toast.error("Алдаа гарлаа: " + e.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!user || !profile) return null;
@@ -560,18 +579,24 @@ function Plans() {
                     onClick={() => setActiveModal(null)}
                     variant="outline" 
                     className="flex-1 rounded-xl py-6 font-bold"
+                    disabled={stripeLoading}
                   >
                     Буцах
                   </Button>
                   <Button 
                     onClick={submitStripePayment}
-                    disabled={submitting}
+                    disabled={stripeLoading}
                     className="flex-grow bg-gradient-to-r from-[#635bff] to-[#8075ff] hover:brightness-[1.1] text-white font-bold py-6 rounded-xl flex items-center justify-center gap-1.5"
                   >
-                    {submitting ? "..." : (
+                    {stripeLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Stripe рүү холбогдож байна...</span>
+                      </>
+                    ) : (
                       <>
                         <Crown className="h-4 w-4" />
-                        <span>Картнаас хасах (Шуурхай)</span>
+                        <span>Картаар төлөх (Шуурхай)</span>
                       </>
                     )}
                   </Button>

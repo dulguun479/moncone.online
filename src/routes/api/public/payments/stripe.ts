@@ -1,28 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import Stripe from "stripe";
 import type { Database } from "@/integrations/supabase/types";
 
 /**
  * moncone Automated Stripe Webhook & Subscription Integration
  * 
  * This endpoint processes incoming webhook notifications from Stripe. When a user
- * successfully subscribes or completes checkout, it automatically promotes them 
- * to Premium status in Supabase, bypassing the need for manual bank transfer approvals.
+ * successfully subscribes or completes checkout, it double-checks the session
+ * directly with Stripe's API for absolute security before promoting them 
+ * to Premium status in Supabase.
  */
 
 export const Route = createFileRoute("/api/public/payments/stripe")({
   server: {
     handlers: {
+      GET: async () => {
+        return Response.json({
+          status: "active",
+          gateway: "Stripe Webhook Gateway",
+          timestamp: new Date().toISOString(),
+          message: "Secure Webhook is active and listening for POST requests only."
+        });
+      },
       POST: async ({ request }) => {
         try {
           const url = process.env.SUPABASE_URL || "";
           const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+          const stripeSecret = process.env.STRIPE_SECRET_KEY;
 
-          if (!url || !serviceKey) {
-            console.error("Missing server-side Supabase credentials");
+          if (!url || !serviceKey || !stripeSecret) {
+            console.error("Missing server-side configuration credentials");
             return Response.json({ ok: false, error: "Configuration error" }, { status: 500 });
           }
 
+          const stripe = new Stripe(stripeSecret, { apiVersion: "2025-04-30.basil" });
           const admin = createClient<Database>(url, serviceKey, {
             auth: {
               autoRefreshToken: false,
@@ -37,17 +49,45 @@ export const Route = createFileRoute("/api/public/payments/stripe")({
           console.log(`🔔 Stripe Webhook Received event: ${eventType}`);
 
           if (eventType === "checkout.session.completed") {
-            const session = body.data.object;
+            const sessionData = body.data.object;
+            const sessionId = sessionData?.id;
+
+            if (!sessionId) {
+              console.error("❌ Stripe Webhook: Missing checkout session ID");
+              return Response.json({ ok: false, error: "Missing session ID" }, { status: 400 });
+            }
+
+            // SECURE CHECK: Query Stripe directly to verify payment is authentic
+            const session = await stripe.checkout.sessions.retrieve(sessionId);
+            if (session.payment_status !== "paid") {
+              console.error(`❌ Stripe Webhook: Attempted mock session payment bypass (${sessionId})`);
+              return Response.json({ ok: false, error: "Payment not completed" }, { status: 402 });
+            }
+
             const userId = session.metadata?.user_id;
-            const paymentCode = session.metadata?.payment_code;
-            const amount = session.amount_total ? session.amount_total / 100 : 10000;
+            const paymentCode = session.metadata?.payment_code || `STRIPE-${sessionId}`;
+            const amountMnt = session.amount_total 
+              ? Math.round((session.amount_total / 100) * 3400) 
+              : 10000;
 
             if (!userId) {
               console.error("❌ Stripe Checkout Session missing user_id in metadata");
-              return Response.json({ ok: false, error: "Missing metadata" }, { status: 400 });
+              return Response.json({ ok: false, error: "Missing user_id metadata" }, { status: 400 });
             }
 
-            console.log(`✅ Stripe Payment confirmed for user: ${userId}, Amount: ₮${amount}`);
+            // Prevent duplicate activation
+            const { data: existing } = await admin
+              .from("payments")
+              .select("id")
+              .eq("payment_code", `STRIPE-${sessionId}`)
+              .maybeSingle();
+
+            if (existing) {
+              console.log(`ℹ️ Webhook: Session ${sessionId} already processed`);
+              return Response.json({ ok: true, message: "Already processed" });
+            }
+
+            console.log(`✅ Secure Stripe Payment confirmed for user: ${userId}, Amount: ₮${amountMnt}`);
 
             // Calculate expiration (30 days from now)
             const expiresAt = new Date();
@@ -67,22 +107,33 @@ export const Route = createFileRoute("/api/public/payments/stripe")({
               return Response.json({ ok: false, error: profError.message }, { status: 500 });
             }
 
+            // Sync with subscriptions table
+            await admin
+              .from("subscriptions")
+              .upsert({ 
+                user_id: userId, 
+                tier: "premium", 
+                current_period_end: expiresAt.toISOString(), 
+                updated_at: new Date().toISOString() 
+              });
+
             // 2. Insert verified payment history
             const { error: payError } = await admin
               .from("payments")
               .insert({
                 user_id: userId,
-                payment_code: paymentCode || "STRIPE-INSTANT",
-                amount: amount,
+                payment_code: `STRIPE-${sessionId}`,
+                amount: amountMnt,
                 status: "confirmed",
                 confirmed_at: new Date().toISOString(),
+                note: "Stripe Webhook автомат баталгаажуулалт",
               });
 
             if (payError) {
               console.warn("⚠️ Warning: Failed to record payment history row:", payError.message);
             }
 
-            // 3. Optional: Notify user/admin via Telegram if configured
+            // 3. Notify user via Telegram
             try {
               const { data: prof } = await admin
                 .from("profiles")
@@ -122,3 +173,4 @@ export const Route = createFileRoute("/api/public/payments/stripe")({
     },
   },
 });
+

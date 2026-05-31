@@ -155,6 +155,9 @@ function Admin() {
           <TabsTrigger value="transcoder">
             <Loader2 className="mr-2 h-4 w-4 text-emerald-400 animate-pulse" /> HLS Студи
           </TabsTrigger>
+          <TabsTrigger value="giftcodes">
+            🎁 Гифт код
+          </TabsTrigger>
           <TabsTrigger value="settings">Тохиргоо</TabsTrigger>
         </TabsList>
         <TabsContent value="stats">
@@ -177,6 +180,9 @@ function Admin() {
         </TabsContent>
         <TabsContent value="transcoder">
           <TranscoderTab />
+        </TabsContent>
+        <TabsContent value="giftcodes">
+          <GiftCodesTab />
         </TabsContent>
         <TabsContent value="settings">
           <SettingsTab />
@@ -599,6 +605,9 @@ function UploadField({
 function PaymentsTab() {
   const list = useServerFn(adminListPayments);
   const confirmFn = useServerFn(adminConfirmPayment);
+  const listUsersFn = useServerFn(adminListUsers);
+  const updateSubFn = useServerFn(adminUpdateUserSubscription);
+
   const [items, setItems] = useState<
     Array<{
       id: string;
@@ -607,86 +616,564 @@ function PaymentsTab() {
       status: string;
       created_at: string;
       email: string | null;
+      user_id: string;
     }>
   >([]);
-  const reload = () => list().then((r) => setItems(r.payments as unknown as typeof items));
+
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  // Filter & Search states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  // Manual VIP Modal states
+  const [manualOpen, setManualOpen] = useState(false);
+  const [selectedUserEmail, setSelectedUserEmail] = useState("");
+  const [manualDays, setManualDays] = useState(30);
+  const [manualSubmitting, setManualSubmitting] = useState(false);
+
+  const reload = async () => {
+    setLoading(true);
+    try {
+      const [resPay, resUsers] = await Promise.all([list(), listUsersFn()]);
+      setItems((resPay.payments as any) ?? []);
+      setUsers((resUsers.users as any) ?? []);
+    } catch (e: any) {
+      toast.error("Мэдээлэл авахад алдаа: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     reload();
   }, []);
 
   const confirm = async (id: string) => {
+    setConfirmingId(id);
     try {
       await confirmFn({ data: { paymentId: id } });
-      toast.success("Баталгаажлаа");
-      reload();
-    } catch (e) {
-      toast.error((e as Error).message);
+      toast.success("Төлбөр амжилттай баталгаажлаа!");
+      await reload();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setConfirmingId(null);
     }
   };
 
-  const pending = items.filter((p) => p.status === "pending");
+  const handleManualActivate = async () => {
+    const emailToFind = selectedUserEmail.trim().toLowerCase();
+    if (!emailToFind) {
+      toast.error("Хэрэглэгчийн и-мэйл оруулна уу");
+      return;
+    }
+
+    const found = users.find((u) => u.email?.toLowerCase() === emailToFind);
+    if (!found) {
+      toast.error("Ийм и-мэйлтэй хэрэглэгч олдсонгүй");
+      return;
+    }
+
+    setManualSubmitting(true);
+    try {
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + Number(manualDays));
+
+      await updateSubFn({
+        data: {
+          userId: found.id,
+          status: "premium",
+          expiresAt: expiresAt.toISOString(),
+        },
+      });
+
+      // Record a manual payment log
+      await supabase.from("payments").insert({
+        user_id: found.id,
+        payment_code: `MANUAL-ADMIN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+        amount: 0,
+        status: "confirmed",
+        confirmed_at: new Date().toISOString(),
+        note: `Админ гараар VIP өгөв (${manualDays} хоног)`,
+      });
+
+      toast.success(`🎉 ${found.email} хэрэглэгчийн Premium эрх ${manualDays} хоногоор идэвхжлээ!`);
+      setManualOpen(false);
+      setSelectedUserEmail("");
+      await reload();
+    } catch (e: any) {
+      toast.error("Эрх олгоход алдаа: " + e.message);
+    } finally {
+      setManualSubmitting(false);
+    }
+  };
+
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Хуулагдлаа");
+  };
+
+  // Computations
+  const confirmedPayments = items.filter((p) => p.status === "confirmed");
+  const totalRevenue = confirmedPayments.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const pendingCount = items.filter((p) => p.status === "pending").length;
+  
+  const stripePayments = items.filter((p) => p.payment_code.startsWith("STRIPE-"));
+  const stripeRevenue = stripePayments
+    .filter((p) => p.status === "confirmed")
+    .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+  const giftPaymentsCount = items.filter((p) => p.payment_code.startsWith("GIFT-")).length;
+
+  // Filter matching
+  const filteredItems = items.filter((p) => {
+    const matchesSearch =
+      (p.payment_code?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (p.email?.toLowerCase() || "").includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" || p.status === statusFilter;
+
+    let matchesType = true;
+    if (typeFilter === "stripe") {
+      matchesType = p.payment_code.startsWith("STRIPE-");
+    } else if (typeFilter === "gift") {
+      matchesType = p.payment_code.startsWith("GIFT-");
+    } else if (typeFilter === "manual") {
+      matchesType = p.payment_code.startsWith("MANUAL-");
+    } else if (typeFilter === "bank") {
+      matchesType =
+        !p.payment_code.startsWith("STRIPE-") &&
+        !p.payment_code.startsWith("GIFT-") &&
+        !p.payment_code.startsWith("MANUAL-");
+    }
+
+    return matchesSearch && matchesStatus && matchesType;
+  });
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="mb-3 text-xl font-semibold">Хүлээгдэж байгаа ({pending.length})</h2>
-        {pending.length === 0 && (
-          <p className="text-muted-foreground">Хүлээгдэж байгаа төлбөр алга.</p>
-        )}
-        <div className="grid gap-3">
-          {pending.map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center justify-between rounded-lg border border-border/60 bg-card p-4"
-            >
-              <div>
-                <p className="font-mono font-semibold">{p.payment_code}</p>
-                <p className="text-sm text-muted-foreground">
-                  {p.email} · ₮{p.amount.toLocaleString()}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(p.created_at).toLocaleString("mn-MN")}
-                </p>
-              </div>
-              <Button onClick={() => confirm(p.id)} className="gap-2">
-                <CheckCircle2 className="h-4 w-4" /> Баталгаажуулах
+      {/* Upper header action section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-white">Төлбөрийн Удирдлага</h2>
+          <p className="text-xs text-muted-foreground">Гүйлгээний түүх, баталгаажуулалт болон VIP сунгалт</p>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button onClick={reload} variant="outline" size="sm" className="h-9">
+            Шинэчлэх
+          </Button>
+
+          {/* Dialog for Manual VIP */}
+          <Dialog open={manualOpen} onOpenChange={setManualOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1.5 h-9 bg-premium hover:bg-premium/90 text-black font-bold">
+                <Plus className="h-4 w-4" /> Гараар VIP өгөх
               </Button>
-            </div>
-          ))}
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>🛡️ Хэрэглэгчид VIP эрх олгох</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-3">
+                <div className="space-y-1">
+                  <Label htmlFor="manual-email">Хэрэглэгчийн И-мэйл</Label>
+                  <Input
+                    id="manual-email"
+                    placeholder="example@gmail.com"
+                    value={selectedUserEmail}
+                    onChange={(e) => setSelectedUserEmail(e.target.value)}
+                    className="bg-background"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Бүртгэлтэй хэрэглэгчийн и-мэйлийг яг зөв оруулна уу.
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="manual-duration">Хугацаа сонгох</Label>
+                  <select
+                    id="manual-duration"
+                    value={manualDays}
+                    onChange={(e) => setManualDays(Number(e.target.value))}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value={7}>7 хоног (Туршилтын)</option>
+                    <option value={30}>30 хоног (1 сар)</option>
+                    <option value={90}>90 хоног (3 сар)</option>
+                    <option value={180}>180 хоног (6 сар)</option>
+                    <option value={365}>365 хоног (1 жил)</option>
+                    <option value={36500}>Бүх насаар (Lifetime)</option>
+                  </select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setManualOpen(false)}>
+                  Болих
+                </Button>
+                <Button
+                  onClick={handleManualActivate}
+                  disabled={manualSubmitting}
+                  className="bg-primary hover:bg-primary/95 text-white font-bold"
+                >
+                  {manualSubmitting ? "Идэвхжүүлж байна..." : "🔥 Идэвхжүүлэх"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
-      <div>
-        <h2 className="mb-3 text-xl font-semibold">Бүх төлбөр</h2>
-        <div className="overflow-hidden rounded-lg border border-border/60">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary/50 text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2">Код</th>
-                <th className="px-4 py-2">Хэрэглэгч</th>
-                <th className="px-4 py-2">Дүн</th>
-                <th className="px-4 py-2">Төлөв</th>
-                <th className="px-4 py-2">Огноо</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((p) => (
-                <tr key={p.id} className="border-t border-border/40">
-                  <td className="px-4 py-2 font-mono">{p.payment_code}</td>
-                  <td className="px-4 py-2">{p.email}</td>
-                  <td className="px-4 py-2">₮{p.amount.toLocaleString()}</td>
-                  <td className="px-4 py-2">
-                    <Badge variant={p.status === "confirmed" ? "default" : "outline"}>
-                      {p.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {new Date(p.created_at).toLocaleDateString("mn-MN")}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+      {/* STAT CARDS GRID */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        
+        {/* Card 1: Total income */}
+        <div className="rounded-xl border border-border/60 bg-[#121214] p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider">Нийт орлого</span>
+            <DollarSign className="h-4 w-4 text-emerald-500" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-2xl font-black text-white">₮{totalRevenue.toLocaleString()}</h3>
+            <p className="text-[10px] text-muted-foreground">Баталгаажсан гүйлгээнүүд</p>
+          </div>
         </div>
+
+        {/* Card 2: Pending counts */}
+        <div className="rounded-xl border border-border/60 bg-[#121214] p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider">Хүлээгдэж буй</span>
+            <Loader2 className={`h-4 w-4 text-amber-500 ${pendingCount > 0 ? "animate-spin" : ""}`} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-2xl font-black text-white">{pendingCount} гүйлгээ</h3>
+            <p className="text-[10px] text-muted-foreground">Батлах шаардлагатай</p>
+          </div>
+        </div>
+
+        {/* Card 3: Stripe cards */}
+        <div className="rounded-xl border border-border/60 bg-[#121214] p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider">Stripe Карт</span>
+            <CreditCard className="h-4 w-4 text-blue-500" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-2xl font-black text-white">₮{stripeRevenue.toLocaleString()}</h3>
+            <p className="text-[10px] text-muted-foreground">{stripePayments.length} амжилттай оролдлого</p>
+          </div>
+        </div>
+
+        {/* Card 4: Gift codes */}
+        <div className="rounded-xl border border-border/60 bg-[#121214] p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-muted-foreground">
+            <span className="text-xs font-semibold uppercase tracking-wider">Гифт код ашиглалт</span>
+            <Crown className="h-4 w-4 text-premium" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-2xl font-black text-white">{giftPaymentsCount} удаа</h3>
+            <p className="text-[10px] text-muted-foreground">Кодоор идэвхжсэн VIP</p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* FILTER CONTROLS TOOLBAR */}
+      <div className="rounded-xl border border-border/40 bg-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-md">
+        
+        {/* Search */}
+        <div className="flex-grow max-w-md">
+          <Input
+            placeholder="Код эсвэл и-мэйлээр хайх..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-9 bg-background/50 border-border/60 text-xs"
+          />
+        </div>
+
+        {/* Filter Selection Grid */}
+        <div className="flex flex-wrap items-center gap-3">
+          
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>Төлөв:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs text-foreground focus:outline-none"
+            >
+              <option value="all">Бүгд</option>
+              <option value="pending">Хүлээгдэж буй</option>
+              <option value="confirmed">Баталгаажсан</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>Суваг:</span>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs text-foreground focus:outline-none"
+            >
+              <option value="all">Бүх төрөл</option>
+              <option value="bank">Банк / Дансаар</option>
+              <option value="stripe">Stripe Карт</option>
+              <option value="gift">Гифт Код</option>
+              <option value="manual">Админ Гараар</option>
+            </select>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* PAYMENTS DATA TABLE */}
+      <div className="overflow-hidden rounded-xl border border-border/60 bg-[#0e0f12] shadow">
+        
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12 space-y-2">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            <p className="text-xs text-muted-foreground">Төлбөрийн түүхийг уншиж байна...</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground text-sm">
+            Илэрц олдсонгүй.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-[#121214]/80 text-muted-foreground uppercase tracking-wider border-b border-border/40">
+                <tr>
+                  <th className="px-5 py-3 font-bold">Огноо</th>
+                  <th className="px-5 py-3 font-bold">Хэрэглэгч</th>
+                  <th className="px-5 py-3 font-bold">Төлбөрийн Код</th>
+                  <th className="px-5 py-3 font-bold">Дүн</th>
+                  <th className="px-5 py-3 font-bold">Төлөв</th>
+                  <th className="px-5 py-3 font-bold text-right">Үйлдэл</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filteredItems.map((p) => {
+                  let badgeColor = "text-muted-foreground bg-white/5";
+                  if (p.status === "confirmed") badgeColor = "text-[#54f08e] bg-[#54f08e]/10";
+                  else if (p.status === "pending") badgeColor = "text-amber-500 bg-amber-500/10 animate-pulse";
+
+                  return (
+                    <tr key={p.id} className="hover:bg-white/[0.02] transition-colors text-muted-foreground/90">
+                      
+                      {/* Date */}
+                      <td className="px-5 py-3.5">
+                        {new Date(p.created_at).toLocaleString("mn-MN", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+
+                      {/* User */}
+                      <td className="px-5 py-3.5 font-medium text-white max-w-[200px] truncate select-all">
+                        {p.email || "Нэргүй / Утас"}
+                      </td>
+
+                      {/* Code */}
+                      <td className="px-5 py-3.5 font-mono select-all flex items-center gap-1">
+                        <span className="font-semibold text-primary">{p.payment_code}</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-5 w-5 hover:text-white"
+                          onClick={() => copy(p.payment_code)}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </td>
+
+                      {/* Amount */}
+                      <td className="px-5 py-3.5 font-bold text-white">
+                        {p.amount > 0 ? `₮${p.amount.toLocaleString()}` : "Үнэгүй / Бонус"}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-5 py-3.5">
+                        <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${badgeColor}`}>
+                          {p.status === "confirmed" ? "Амжилттай" : p.status === "pending" ? "Хүлээгдэж буй" : p.status}
+                        </span>
+                      </td>
+
+                      {/* Action */}
+                      <td className="px-5 py-3.5 text-right">
+                        {p.status === "pending" && (
+                          <Button
+                            size="sm"
+                            disabled={confirmingId === p.id}
+                            onClick={() => confirm(p.id)}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-7 px-3 text-[10px] rounded"
+                          >
+                            {confirmingId === p.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            ) : (
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                            )}
+                            Батлах
+                          </Button>
+                        )}
+                      </td>
+
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Gift Codes ---------------- */
+function GiftCodesTab() {
+  const [codes, setCodes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [newCode, setNewCode] = useState("");
+  const [newDays, setNewDays] = useState(30);
+  const [newNote, setNewNote] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("gift_codes" as any)
+      .select("*")
+      .order("created_at", { ascending: false });
+    setCodes((data as any[]) ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const generate = () => {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    return "MC-" + Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  };
+
+  const create = async () => {
+    const code = newCode.trim().toUpperCase() || generate();
+    if (!code) return;
+    setCreating(true);
+    const { error } = await supabase
+      .from("gift_codes" as any)
+      .insert({ code, days: newDays, note: newNote || null });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(`🎁 Код [${code}] үүсгэгдлээ`);
+      setNewCode("");
+      setNewNote("");
+      setNewDays(30);
+      load();
+    }
+    setCreating(false);
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Устгах уу?")) return;
+    await supabase.from("gift_codes" as any).delete().eq("id", id);
+    toast.success("Устгалаа");
+    load();
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold">🎁 Гифт код удирдлах</h2>
+      <div className="rounded-lg border border-border/60 bg-card p-5 space-y-4">
+        <h3 className="font-semibold">Шинэ код үүсгэх</h3>
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <Label>Код (хоосн үлдэх бол автоматтаар үүсгэнэ)</Label>
+            <Input
+              value={newCode}
+              onChange={e => setNewCode(e.target.value.toUpperCase())}
+              placeholder="MC-XXXXXXXX"
+              className="font-mono"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>VIP хоног (өдөр)</Label>
+            <Input
+              type="number"
+              min={1} max={365}
+              value={newDays}
+              onChange={e => setNewDays(Number(e.target.value))}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Тэмдэглэл (зөвхөн)</Label>
+            <Input
+              value={newNote}
+              onChange={e => setNewNote(e.target.value)}
+              placeholder="Сурталчилгааны код..."
+            />
+          </div>
+        </div>
+        <Button onClick={create} disabled={creating} className="gap-2">
+          {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          Гифт код үүсгэх
+        </Button>
+      </div>
+
+      <div className="overflow-hidden rounded-lg border border-border/60">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary/50 text-left text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-4 py-2">Код</th>
+              <th className="px-4 py-2">Хоног</th>
+              <th className="px-4 py-2">Төлөв</th>
+              <th className="px-4 py-2">Тэмдэглэл</th>
+              <th className="px-4 py-2">Үүсгэсэн огноо</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {loading && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Уншиж байна...</td></tr>}
+            {!loading && codes.length === 0 && <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Код үгүй байна</td></tr>}
+            {codes.map((c: any) => (
+              <tr key={c.id} className={`border-t border-border/40 ${c.is_used ? "opacity-50" : ""}`}>
+                <td className="px-4 py-2 font-mono font-bold">
+                  <div className="flex items-center gap-2">
+                    {c.code}
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(c.code); toast.success("Хууллагдлаа"); }}
+                      className="opacity-50 hover:opacity-100"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                  </div>
+                </td>
+                <td className="px-4 py-2">{c.days} өдөр</td>
+                <td className="px-4 py-2">
+                  <Badge variant={c.is_used ? "outline" : "default"}>
+                    {c.is_used ? "Ашигласан" : "Идэвхтэй"}
+                  </Badge>
+                </td>
+                <td className="px-4 py-2 text-muted-foreground text-xs">{c.note ?? "-"}</td>
+                <td className="px-4 py-2 text-muted-foreground text-xs">
+                  {new Date(c.created_at).toLocaleDateString("mn-MN")}
+                </td>
+                <td className="px-4 py-2">
+                  <Button size="icon" variant="ghost" onClick={() => remove(c.id)} disabled={c.is_used}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
