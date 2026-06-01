@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- moncone brand red color for FCM notification icon accent and theme -->
+    <color name="colorPrimary">#EF4444</color>
+    <color name="colorPrimaryDark">#DC2626</color>
+    <color name="colorAccent">#F87171</color>
+    <!-- Splash screen background: moncone dark -->
+    <color name="splashBackground">#030303</color>
+</resources>

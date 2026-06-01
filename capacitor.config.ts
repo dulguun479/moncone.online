@@ -10,8 +10,29 @@ const config: CapacitorConfig = {
     allowNavigation: ['moncone.online', 'www.moncone.online']
   },
   android: {
-    allowMixedContent: true
-  }
+    allowMixedContent: true,
+    backgroundColor: '#030303',
+  },
+  plugins: {
+    SplashScreen: {
+      launchShowDuration: 2000,
+      launchAutoHide: true,
+      backgroundColor: '#030303',
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER_CROP',
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+    LocalNotifications: {
+      smallIcon: 'ic_launcher',
+      iconColor: '#EF4444',
+      sound: 'default',
+    },
+  },
 };
 
 export default config;
