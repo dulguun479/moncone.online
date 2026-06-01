@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Холболт тасарлаа - moncone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --background: #030303;
+      --foreground: #f4f4f5;
+      --card: rgba(15, 15, 15, 0.65);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #ef4444;
+      --primary-hover: #dc2626;
+      --primary-glow: rgba(239, 68, 68, 0.45);
+      --text-muted: #a1a1aa;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--foreground);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient glow elements */
+    body::before {
+      content: "";
+      position: absolute;
+      width: 350px;
+      height: 350px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      filter: blur(40px);
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    .container {
+      max-width: 420px;
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 40px 32px;
+      text-align: center;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      z-index: 2;
+      position: relative;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .container.shake {
+      animation: shake 0.5s ease-in-out;
+    }
+
+    .icon-container {
+      width: 90px;
+      height: 90px;
+      margin: 0 auto 28px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 0 30px rgba(239, 68, 68, 0.15);
+    }
+
+    .icon-container svg {
+      width: 42px;
+      height: 42px;
+      color: var(--primary);
+      stroke-width: 1.5px;
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    p.en-text {
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 16px;
+      margin-top: 16px;
+      font-style: italic;
+    }
+
+    .btn-retry {
+      width: 100%;
+      background: var(--primary);
+      border: none;
+      color: white;
+      padding: 16px 28px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+      outline: none;
+    }
+
+    .btn-retry:hover {
+      background: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.45);
+    }
+
+    .btn-retry:active {
+      transform: translateY(0);
+    }
+
+    .btn-retry svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2px;
+      transition: transform 0.5s ease;
+    }
+
+    .btn-retry:hover svg {
+      transform: rotate(180deg);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translate(-50%, 100px);
+      background: rgba(24, 24, 27, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #fff;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      z-index: 999;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+      opacity: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toast.show {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(0.95);
+        opacity: 0.85;
+      }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+      20%, 40%, 60%, 80% { transform: translateX(6px); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="card">
+    <div class="icon-container">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M2.25 21h19.5M3 13.5h18M3 6h18" />
+      </svg>
+    </div>
+    <h1>Холболт тасарлаа</h1>
+    <h2>Интернет холболтоо шалгана уу</h2>
+    
+    <p class="mn-text">
+      Интернэт холболт идэвхгүй байна. Аппликейшнийг хэвийн ажиллуулахын тулд сүлжээгээ шалгана уу. Холбогдсон даруйд автоматаар шинэчлэгдэнэ.
+    </p>
+    
+    <p class="en-text">
+      You are currently offline. Please check your network settings. The app will automatically reconnect when you are back online.
+    </p>
+
+    <button class="btn-retry" onclick="checkNetwork()">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+      </svg>
+      Дахин оролдох (Retry)
+    </button>
+  </div>
+
+  <div class="toast" id="toast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>Холболт идэвхгүй хэвээр байна</span>
+  </div>
+
+  <script>
+    const MAIN_URL = 'https://moncone.online';
+
+    function checkNetwork() {
+      if (navigator.onLine) {
+        window.location.href = MAIN_URL;
+      } else {
+        const card = document.getElementById('card');
+        const toast = document.getElementById('toast');
+        
+        card.classList.remove('shake');
+        void card.offsetWidth; // Trigger reflow
+        card.classList.add('shake');
+
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }
+    }
+
+    // Automatically redirect when connection is restored
+    window.addEventListener('online', () => {
+      window.location.href = MAIN_URL;
+    });
+
+    // Run verification immediately
+    if (navigator.onLine) {
+      window.location.href = MAIN_URL;
+    }
+  </script>
+</body>
+</html>
