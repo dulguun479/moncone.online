@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "118914805379",
-    "project_id": "moncore-d8d6b",
-    "storage_bucket": "moncore-d8d6b.appspot.com"
+    "project_number": "395467911134",
+    "project_id": "moncone-ac9cf",
+    "storage_bucket": "moncone-ac9cf.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:118914805379:android:moncone",
+        "mobilesdk_app_id": "1:395467911134:android:REGISTER_ANDROID_APP",
         "android_client_info": {
           "package_name": "online.moncone.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": ""
+          "current_key": "AIzaSyBihvBQt32v1eitCWfd5cNgiUZdJVvlecs"
         }
       ],
       "services": {
