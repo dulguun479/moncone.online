@@ -8,5 +8,15 @@
         "00:2E:7A:DA:BC:BA:C4:40:23:97:97:78:16:A6:DB:8F:09:85:0E:B1:D0:CB:C8:F7:54:98:FE:C0:5F:AC:19:FD"
       ]
     }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "online.moncone.app",
+      "sha256_cert_fingerprints": [
+        "00:2E:7A:DA:BC:BA:C4:40:23:97:97:78:16:A6:DB:8F:09:85:0E:B1:D0:CB:C8:F7:54:98:FE:C0:5F:AC:19:FD"
+      ]
+    }
   }
 ]
