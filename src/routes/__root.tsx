@@ -62,29 +62,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
       },
-      { title: "moncone — Монгол кино урсгал" },
+      { title: "moncone — Монголын онлайн хүнсний дэлгүүр" },
       {
         name: "description",
         content:
-          "Монголын кино, түүхэн киноны урсгал үйлчилгээ. moncone — Mongolian movie streaming.",
+          "Монголын өдөр тутмын хүнс, ундаа, амттан болон ахуйн барааны онлайн дэлгүүр.",
       },
       { name: "theme-color", content: "#e50914" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "moncone" },
-      { property: "og:title", content: "moncone — Монгол кино урсгал" },
+      { property: "og:title", content: "moncone — Монголын онлайн хүнсний дэлгүүр" },
       {
         property: "og:description",
         content:
-          "Монголын кино, түүхэн киноны урсгал үйлчилгээ. moncone — Mongolian movie streaming.",
+          "Монголын өдөр тутмын хүнс, ундаа, амттан болон ахуйн барааны онлайн дэлгүүр.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "moncone — Монгол кино урсгал" },
+      { name: "twitter:title", content: "moncone — Монголын онлайн хүнсний дэлгүүр" },
       {
         name: "twitter:description",
         content:
-          "Монголын кино, түүхэн киноны урсгал үйлчилгээ. moncone — Mongolian movie streaming.",
+          "Монголын өдөр тутмын хүнс, ундаа, амттан болон ахуйн барааны онлайн дэлгүүр.",
       },
       {
         property: "og:image",
