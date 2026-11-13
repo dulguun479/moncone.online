@@ -3,7 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Film, Globe, LogOut, Shield, User as UserIcon, Download, Send } from "lucide-react";
+import { ShoppingBasket, Film, Globe, LogOut, Shield, User as UserIcon, Download, Send } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export function SiteHeader() {
@@ -64,7 +64,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2.5 group">
           <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 transition-all duration-300 group-hover:bg-primary/20 group-hover:scale-105 shadow-sm shadow-primary/10">
-            <Film className="h-5 w-5 text-primary transition-transform duration-500 group-hover:rotate-12" />
+            <ShoppingBasket className="h-5 w-5 text-primary transition-transform duration-500 group-hover:rotate-12" />
           </div>
           <span className="font-display text-2xl font-bold uppercase tracking-wider bg-gradient-to-r from-primary via-rose-500 to-orange-400 bg-clip-text text-transparent group-hover:brightness-[1.15] transition-all">
             moncone
@@ -76,7 +76,7 @@ export function SiteHeader() {
             activeProps={{ className: "text-foreground" }}
             className="hover:text-foreground transition-colors"
           >
-            {t("nav.home")}
+            Дэлгүүр
           </Link>
           {isAdmin && (
             <Link
