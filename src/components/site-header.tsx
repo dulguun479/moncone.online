@@ -3,7 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingBasket, Film, Globe, LogOut, Shield, User as UserIcon, Download, Send } from "lucide-react";
+import { ShoppingBasket, Globe, LogOut, Shield, User as UserIcon, Download, Send } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export function SiteHeader() {
@@ -71,21 +71,13 @@ export function SiteHeader() {
           </span>
         </Link>
         <nav className="hidden gap-5 text-sm text-muted-foreground md:flex">
-          <Link
-            to="/"
-            activeProps={{ className: "text-foreground" }}
-            className="hover:text-foreground transition-colors"
-          >
-            Дэлгүүр
-          </Link>
+          <Link to="/" activeProps={{ className: "text-foreground" }} className="hover:text-foreground transition-colors">Дэлгүүр</Link>
+          <Link to="/cinema" activeProps={{ className: "text-foreground" }} className="hover:text-foreground transition-colors">Кино</Link>
           {isAdmin && (
-            <Link
-              to="/admin"
-              activeProps={{ className: "text-foreground" }}
-              className="hover:text-foreground transition-colors"
-            >
-              {t("nav.admin")}
-            </Link>
+            <>
+              <Link to="/admin/products" activeProps={{ className: "text-foreground" }} className="hover:text-foreground transition-colors">Бараа оруулах</Link>
+              <Link to="/admin" activeProps={{ className: "text-foreground" }} className="hover:text-foreground transition-colors">{t("nav.admin")}</Link>
+            </>
           )}
         </nav>
         <div className="ml-auto flex items-center gap-2">
