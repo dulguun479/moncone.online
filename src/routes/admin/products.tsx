@@ -98,7 +98,7 @@ function ProductImportAdmin() {
   };
   const downloadTemplate = () => {
     const csvTemplate = "sku,name,category,brand,unit,barcode,description,image_url,source_name,source_url,source_price_mnt,sale_price_mnt,stock_qty\n";
-    const url = URL.createObjectURL(new Blob(["\\uFEFF" + csvTemplate], { type: "text/csv;charset=utf-8;" }));
+    const url = URL.createObjectURL(new Blob(["\uFEFF" + csvTemplate], { type: "text/csv;charset=utf-8;" }));
     const a = document.createElement("a"); a.href = url; a.download = "moncone-baraa-import-template.csv"; a.click(); URL.revokeObjectURL(url);
   };
 
