@@ -71,7 +71,7 @@ function ProductImportAdmin() {
     if (!files?.length) return;
     setImageBusy(true); let done = 0; const errors: string[] = [];
     for (const file of Array.from(files)) {
-      const sku = file.name.replace(/\\.[^.]+$/, "");
+      const sku = file.name.replace(/\.[^.]+$/, "");
       const product = products.find(p => p.sku === sku);
       if (!product) { errors.push(file.name + ": нэр нь SKU-тай таарсангүй"); continue; }
       const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
