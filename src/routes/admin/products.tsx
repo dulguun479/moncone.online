@@ -30,7 +30,8 @@ function ProductImportAdmin() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [products, setProducts] = useState<ProductRow[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);\n  const [imageBusy, setImageBusy] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [imageBusy, setImageBusy] = useState(false);
   const parsed = useMemo(() => {
     const all = parseCsv(csv);
     if (all.length < 2) return { rows: [] as ImportRow[], errors: [] as string[] };
