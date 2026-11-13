@@ -30,7 +30,7 @@ function ProductImportAdmin() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [products, setProducts] = useState<ProductRow[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);\n  const [imageBusy, setImageBusy] = useState(false);
   const parsed = useMemo(() => {
     const all = parseCsv(csv);
     if (all.length < 2) return { rows: [] as ImportRow[], errors: [] as string[] };
@@ -43,7 +43,7 @@ function ProductImportAdmin() {
       if (!sku) errors.push((i + 2) + "-р мөр: sku хоосон");
       const price = num(at(r, "sale_price_mnt"));
       if (at(r, "sale_price_mnt") && (price === null || price < 0)) errors.push((i + 2) + "-р мөр: sale_price_mnt буруу");
-      return { sku, barcode: at(r,"barcode") || undefined, name, brand: at(r,"brand") || undefined, category, unit: at(r,"unit") || undefined, description: at(r,"description") || undefined, image_url: at(r,"image_url") || undefined, source_name: at(r,"source_name") || undefined, source_url: at(r,"source_url") || undefined, source_price_mnt: num(at(r,"source_price_mnt")), sale_price_mnt: price, stock_qty: Math.max(0, Number(at(r,"stock_qty") || 0)), is_published: false, image_usage_confirmed: false } as ImportRow;
+      return { sku, barcode: at(r,"barcode") || undefined, name, brand: at(r,"brand") || undefined, category, unit: at(r,"unit") || undefined, description: at(r,"description") || undefined, image_url: at(r,"image_url") || undefined, source_name: at(r,"source_name") || undefined, source_url: at(r,"source_url") || undefined, source_price_mnt: num(at(r,"source_price_mnt")), sale_price_mnt: price, stock_qty: Math.max(0, Number(at(r,"stock_qty") || 0)) } as ImportRow;
     });
     return { rows, errors };
   }, [csv]);
@@ -65,6 +65,24 @@ function ProductImportAdmin() {
     setBusy(false);
     setMessage(error ? "Импорт амжилтгүй: " + error.message : parsed.rows.length + " барааг ноорог төлөвт хадгаллаа.");
     if (!error) await refreshProducts();
+  };
+  const uploadProductImages = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setImageBusy(true); let done = 0; const errors: string[] = [];
+    for (const file of Array.from(files)) {
+      const sku = file.name.replace(/\\.[^.]+$/, "");
+      const product = products.find(p => p.sku === sku);
+      if (!product) { errors.push(file.name + ": нэр нь SKU-тай таарсангүй"); continue; }
+      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = sku + "." + extension;
+      const { error: uploadError } = await supabase.storage.from("store-product-images").upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadError) { errors.push(file.name + ": " + uploadError.message); continue; }
+      const publicUrl = supabase.storage.from("store-product-images").getPublicUrl(path).data.publicUrl;
+      const { error: updateError } = await supabase.from("store_products").update({ image_url: publicUrl, image_usage_confirmed: false }).eq("id", product.id);
+      if (updateError) errors.push(file.name + ": " + updateError.message); else done++;
+    }
+    setImageBusy(false); setMessage(done + " зургийг холболоо." + (errors.length ? " Алдаа: " + errors.join("; ") : " Нийтлэхийн өмнө зургийн эрх болон үнийг шалгана уу."));
+    await refreshProducts();
   };
   const confirmImageAndPublish = async (p: ProductRow) => {
     if (!p.image_url || p.sale_price_mnt === null || p.sale_price_mnt <= 0) { setMessage("Нийтлэхийн өмнө зураг болон зарах үнийг заавал оруулна."); return; }
@@ -95,6 +113,12 @@ function ProductImportAdmin() {
       <div className="mt-4"><label className="mb-2 block text-sm font-medium">Эсвэл CSV текстээ хуулна уу</label><Textarea value={csv} onChange={e=>setCsv(e.target.value)} rows={8} placeholder={"sku,name,category,brand,unit,image_url,sale_price_mnt\nMILK-001,Сүү Цэвэр,Сүү цагаан идээ,Цэвэр,1л,https://...,5200"}/></div>
       <div className="mt-4 flex flex-wrap gap-3"><Button onClick={importRows} disabled={busy||!parsed.rows.length||parsed.errors.length>0}>{busy?"Оруулж байна...":"Ноорогт бөөнөөр хадгалах"}</Button><Button variant="outline" onClick={()=>void refreshProducts()}><RefreshCw className="mr-2 h-4 w-4"/>Жагсаалт шинэчлэх</Button></div>
       {csv && <div className="mt-5 rounded-xl bg-muted p-4"><p className="text-sm">Импортын мөр: {parsed.rows.length} · Алдаа: {parsed.errors.length}</p>{parsed.errors.length>0 && <ul className="mt-2 space-y-1 text-sm text-destructive">{parsed.errors.slice(0,20).map((e,i)=><li key={i}><AlertCircle className="mr-1 inline h-4 w-4"/>{e}</li>)}</ul>}{parsed.errors.length===0&&parsed.rows.length>0&&<p className="mt-2 text-sm text-green-600"><CheckCircle2 className="mr-1 inline h-4 w-4"/>Импортод бэлэн. Нийтлэхгүй, ноорог хадгална.</p>}</div>}
+    </div>
+    <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+      <h2 className="font-semibold">Бодит барааны зураг бөөнөөр оруулах</h2>
+      <p className="mt-2 text-sm text-muted-foreground">Зургийн файлын нэрийг тухайн барааны SKU-тай яг адил болгоно. Жишээ: MILK-001.jpg. Зөвхөн өөрийн авсан эсвэл нийлүүлэгчээс ашиглах зөвшөөрөлтэй зургийг оруулна.</p>
+      <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={imageBusy} onChange={e=>void uploadProductImages(e.target.files)} className="mt-4 block w-full text-sm"/>
+      {imageBusy && <p className="mt-2 text-sm text-muted-foreground">Зураг байршуулж байна...</p>}
     </div>
     <div className="mt-8"><div className="mb-4 flex items-center justify-between"><h2 className="text-xl font-bold">Барааны хяналт ({products.length})</h2><span className="text-xs text-muted-foreground">Сүүлийн 200 бараа</span></div>
       {loadingProducts?<p className="py-8 text-center text-muted-foreground">Ачаалж байна...</p>:products.length===0?<p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">Одоогоор бараа бүртгэгдээгүй байна.</p>:<div className="space-y-3">{products.map(p=><div key={p.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center">
