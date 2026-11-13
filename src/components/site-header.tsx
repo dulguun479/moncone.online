@@ -3,7 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ShoppingBasket, Globe, LogOut, Shield, User as UserIcon, Download, Send } from "lucide-react";
+import { ShoppingBasket, Package, Globe, LogOut, Shield, User as UserIcon, Download, Send } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export function SiteHeader() {
@@ -132,11 +132,14 @@ export function SiteHeader() {
                 </Link>
               </Button>
               {isAdmin && (
-                <Button variant="ghost" size="icon" asChild>
-                  <Link to="/admin">
-                    <Shield className="h-4 w-4" />
-                  </Link>
-                </Button>
+                <>
+                  <Button variant="ghost" size="icon" asChild title="Бараа оруулах">
+                    <Link to="/admin/products"><Package className="h-4 w-4" /></Link>
+                  </Button>
+                  <Button variant="ghost" size="icon" asChild title="Админ">
+                    <Link to="/admin"><Shield className="h-4 w-4" /></Link>
+                  </Button>
+                </>
               )}
               <Button
                 variant="ghost"
